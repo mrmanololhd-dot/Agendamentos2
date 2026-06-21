@@ -34,20 +34,36 @@ document.addEventListener('DOMContentLoaded', () => {
     this.value = this.value.toLowerCase();
     this.setSelectionRange(pos, pos);
   });
-  document.getElementById('f-num').addEventListener('input', atualizarLinha1Confirmacao);
-  document.getElementById('f-comp').addEventListener('input', atualizarLinha1Confirmacao);
+  document.getElementById('f-num').addEventListener('input', atualizarConfirmacaoEndereco);
+  document.getElementById('f-comp').addEventListener('input', atualizarConfirmacaoEndereco);
+  document.getElementById('f-rua').addEventListener('input', atualizarConfirmacaoEndereco);
+  document.getElementById('f-bairro').addEventListener('input', atualizarConfirmacaoEndereco);
+  document.getElementById('f-cidade').addEventListener('input', atualizarConfirmacaoEndereco);
+  document.getElementById('f-uf').addEventListener('input', atualizarConfirmacaoEndereco);
+  document.getElementById('f-cep').addEventListener('input', atualizarConfirmacaoEndereco);
 });
 
-function atualizarLinha1Confirmacao() {
+function atualizarConfirmacaoEndereco() {
   const box = document.getElementById('addr-confirm');
-  if (box && box.style.display !== 'none') {
-    const rua = document.getElementById('f-rua').value;
-    const num = document.getElementById('f-num').value;
-    const comp = document.getElementById('f-comp').value;
-    let linha1 = rua + (num ? ', ' + num : '');
-    if (comp) linha1 += ' - ' + comp;
-    document.getElementById('addr-confirm-line1').textContent = linha1;
-  }
+  if (!box || box.style.display === 'none') return;
+
+  const rua    = document.getElementById('f-rua').value;
+  const num    = document.getElementById('f-num').value;
+  const comp   = document.getElementById('f-comp').value;
+  const bairro = document.getElementById('f-bairro').value;
+  const cidade = document.getElementById('f-cidade').value;
+  const uf     = document.getElementById('f-uf').value;
+  const cep    = document.getElementById('f-cep').value;
+
+  let linha1 = rua + (num ? ', ' + num : '');
+  if (comp) linha1 += ' - ' + comp;
+
+  const linha2 = [bairro, cidade && uf ? cidade + ' - ' + uf : cidade].filter(Boolean).join(' • ');
+  const linha3 = cep ? 'CEP ' + cep : '';
+
+  document.getElementById('addr-confirm-line1').textContent = linha1;
+  document.getElementById('addr-confirm-line2').textContent = linha2;
+  document.getElementById('addr-confirm-line3').textContent = linha3;
 }
 
 // ===== STORAGE =====
@@ -148,16 +164,8 @@ async function buscarCEP() {
 
 function mostrarConfirmacaoEndereco(d) {
   const box = document.getElementById('addr-confirm');
-  const line2 = document.getElementById('addr-confirm-line2');
-  const line3 = document.getElementById('addr-confirm-line3');
-
-  const cep = document.getElementById('f-cep').value;
-
-  line2.textContent = [d.bairro, d.localidade && d.uf ? d.localidade + ' - ' + d.uf : d.localidade].filter(Boolean).join(' • ');
-  line3.textContent = cep ? 'CEP ' + cep : '';
-
   box.style.display = 'block';
-  atualizarLinha1Confirmacao();
+  atualizarConfirmacaoEndereco();
 }
 
 function esconderConfirmacaoEndereco() {
