@@ -338,6 +338,9 @@ tr:hover td { background: #fafeff; }
   border-radius: 5px; padding: 4px 5px;
   background: #EBF4FF; color: #0C447C;
   width: 100%; cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .td-sel:focus { outline: none; border-color: #0C447C; }
 .kit-sel-td:focus { outline: none; border-color: #0C447C; }

@@ -34,14 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
     this.value = this.value.toLowerCase();
     this.setSelectionRange(pos, pos);
   });
-  document.getElementById('f-num').addEventListener('input', function () {
-    const box = document.getElementById('addr-confirm');
-    if (box && box.style.display !== 'none') {
-      const rua = document.getElementById('f-rua').value;
-      document.getElementById('addr-confirm-line1').textContent = rua + (this.value ? ', ' + this.value : '');
-    }
-  });
+  document.getElementById('f-num').addEventListener('input', atualizarLinha1Confirmacao);
+  document.getElementById('f-comp').addEventListener('input', atualizarLinha1Confirmacao);
 });
+
+function atualizarLinha1Confirmacao() {
+  const box = document.getElementById('addr-confirm');
+  if (box && box.style.display !== 'none') {
+    const rua = document.getElementById('f-rua').value;
+    const num = document.getElementById('f-num').value;
+    const comp = document.getElementById('f-comp').value;
+    let linha1 = rua + (num ? ', ' + num : '');
+    if (comp) linha1 += ' - ' + comp;
+    document.getElementById('addr-confirm-line1').textContent = linha1;
+  }
+}
 
 // ===== STORAGE =====
 function loadData() {
@@ -101,43 +108,56 @@ async function buscarCEP() {
   const btn = document.getElementById('btn-cep');
   btn.disabled = true;
   btn.textContent = 'Buscando...';
+
+  let dados = null;
+
   try {
     const r = await fetch('https://viacep.com.br/ws/' + cepVal + '/json/');
     const d = await r.json();
     if (!d.erro) {
-      document.getElementById('f-rua').value = d.logradouro || '';
-      document.getElementById('f-bairro').value = d.bairro || '';
-      document.getElementById('f-cidade').value = d.localidade || '';
-      document.getElementById('f-uf').value = (d.uf || '').toUpperCase();
-      document.getElementById('f-num').focus();
-      mostrarConfirmacaoEndereco(d);
-      showToast('✅ Endereço preenchido automaticamente!');
-    } else {
-      esconderConfirmacaoEndereco();
-      showToast('CEP não encontrado.', 'error');
+      dados = { logradouro: d.logradouro, bairro: d.bairro, localidade: d.localidade, uf: d.uf };
     }
-  } catch (e) {
-    esconderConfirmacaoEndereco();
-    showToast('Erro ao buscar CEP. Verifique sua conexão.', 'error');
+  } catch (e) { /* tenta o backup abaixo */ }
+
+  if (!dados) {
+    try {
+      const r2 = await fetch('https://brasilapi.com.br/api/cep/v1/' + cepVal);
+      if (r2.ok) {
+        const d2 = await r2.json();
+        dados = { logradouro: d2.street, bairro: d2.neighborhood, localidade: d2.city, uf: d2.state };
+      }
+    } catch (e2) { /* segue sem dados */ }
   }
+
+  if (dados && (dados.logradouro || dados.localidade)) {
+    document.getElementById('f-rua').value = dados.logradouro || '';
+    document.getElementById('f-bairro').value = dados.bairro || '';
+    document.getElementById('f-cidade').value = dados.localidade || '';
+    document.getElementById('f-uf').value = (dados.uf || '').toUpperCase();
+    document.getElementById('f-num').focus();
+    mostrarConfirmacaoEndereco(dados);
+    showToast('✅ Endereço preenchido automaticamente!');
+  } else {
+    esconderConfirmacaoEndereco();
+    showToast('CEP não encontrado ou serviço indisponível no momento.', 'error');
+  }
+
   btn.disabled = false;
   btn.textContent = 'Buscar';
 }
 
 function mostrarConfirmacaoEndereco(d) {
   const box = document.getElementById('addr-confirm');
-  const line1 = document.getElementById('addr-confirm-line1');
   const line2 = document.getElementById('addr-confirm-line2');
   const line3 = document.getElementById('addr-confirm-line3');
 
-  const num = document.getElementById('f-num').value;
   const cep = document.getElementById('f-cep').value;
 
-  line1.textContent = (d.logradouro || '') + (num ? ', ' + num : '');
   line2.textContent = [d.bairro, d.localidade && d.uf ? d.localidade + ' - ' + d.uf : d.localidade].filter(Boolean).join(' • ');
   line3.textContent = cep ? 'CEP ' + cep : '';
 
   box.style.display = 'block';
+  atualizarLinha1Confirmacao();
 }
 
 function esconderConfirmacaoEndereco() {
@@ -249,10 +269,10 @@ function render() {
       <option value="ultra_normal" ${p.kit==='ultra_normal'?'selected':''}>Ultra (10 meses)</option>
     </optgroup>
     <optgroup label="Desconto 🏷">
-      <option value="3m_desc"    ${p.kit==='3m_desc'?'selected':''}>3 meses</option>
-      <option value="5m_desc"    ${p.kit==='5m_desc'?'selected':''}>5 meses</option>
-      <option value="7m_desc"    ${p.kit==='7m_desc'?'selected':''}>7 meses</option>
-      <option value="ultra_desc" ${p.kit==='ultra_desc'?'selected':''}>Ultra (10 meses)</option>
+      <option value="3m_desc"    ${p.kit==='3m_desc'?'selected':''}>3 meses – Desconto</option>
+      <option value="5m_desc"    ${p.kit==='5m_desc'?'selected':''}>5 meses – Desconto</option>
+      <option value="7m_desc"    ${p.kit==='7m_desc'?'selected':''}>7 meses – Desconto</option>
+      <option value="ultra_desc" ${p.kit==='ultra_desc'?'selected':''}>Ultra (10 meses) – Desconto</option>
     </optgroup>
   </select>
 </td>
@@ -336,29 +356,51 @@ async function updCEPRow(id, input) {
   input.value = fmtCEP(input.value);
   upd(id, 'cep', input.value);
   if (cepVal.length !== 8) return;
+
+  let dados = null;
+
   try {
     const r = await fetch('https://viacep.com.br/ws/' + cepVal + '/json/');
     const d = await r.json();
     if (!d.erro) {
-      const row = input.closest('.addr-edit-grid');
-      const ruaInput = row.querySelector('[data-field="rua"]');
-      const bairroInput = row.querySelector('[data-field="bairro"]');
-      const cidadeInput = row.querySelector('[data-field="cidade"]');
-      const ufInput = row.querySelector('[data-field="uf"]');
-      if (ruaInput) ruaInput.value = d.logradouro || '';
-      if (bairroInput) bairroInput.value = d.bairro || '';
-      if (cidadeInput) cidadeInput.value = d.localidade || '';
-      if (ufInput) ufInput.value = (d.uf || '').toUpperCase();
-      upd(id, 'rua', d.logradouro || '');
-      upd(id, 'bairro', d.bairro || '');
-      upd(id, 'cidade', d.localidade || '');
-      upd(id, 'uf', (d.uf || '').toUpperCase());
-      showToast('✅ Endereço atualizado automaticamente!');
-    } else {
-      showToast('CEP não encontrado.', 'error');
+      dados = { logradouro: d.logradouro, bairro: d.bairro, localidade: d.localidade, uf: d.uf };
     }
-  } catch (e) {
-    showToast('Erro ao buscar CEP.', 'error');
+  } catch (e) { /* tenta backup */ }
+
+  if (!dados) {
+    try {
+      const r2 = await fetch('https://brasilapi.com.br/api/cep/v1/' + cepVal);
+      if (r2.ok) {
+        const d2 = await r2.json();
+        dados = { logradouro: d2.street, bairro: d2.neighborhood, localidade: d2.city, uf: d2.state };
+      }
+    } catch (e2) { /* sem dados */ }
+  }
+
+  if (dados && (dados.logradouro || dados.localidade)) {
+    const row = input.closest('.addr-edit-grid');
+    const ruaInput = row.querySelector('[data-field="rua"]');
+    const bairroInput = row.querySelector('[data-field="bairro"]');
+    const cidadeInput = row.querySelector('[data-field="cidade"]');
+    const ufInput = row.querySelector('[data-field="uf"]');
+    if (ruaInput) ruaInput.value = dados.logradouro || '';
+    if (bairroInput) bairroInput.value = dados.bairro || '';
+    if (cidadeInput) cidadeInput.value = dados.localidade || '';
+    if (ufInput) ufInput.value = (dados.uf || '').toUpperCase();
+    upd(id, 'rua', dados.logradouro || '');
+    upd(id, 'bairro', dados.bairro || '');
+    upd(id, 'cidade', dados.localidade || '');
+    upd(id, 'uf', (dados.uf || '').toUpperCase());
+    const display = document.getElementById('addr-display-' + id);
+    if (display) {
+      const p = pedidos.find(x => x.id === id);
+      display.querySelector('.addr-line1').textContent = (p.rua || '—') + (p.num ? ', ' + p.num : '') + (p.comp ? ' - ' + p.comp : '');
+      display.querySelector('.addr-line2').textContent = [p.bairro, p.cidade && p.uf ? p.cidade + ' - ' + p.uf : p.cidade].filter(Boolean).join(' • ');
+      display.querySelector('.addr-line3').textContent = p.cep ? 'CEP ' + p.cep : '';
+    }
+    showToast('✅ Endereço atualizado automaticamente!');
+  } else {
+    showToast('CEP não encontrado ou serviço indisponível.', 'error');
   }
 }
 
