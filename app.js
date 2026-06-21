@@ -34,6 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
     this.value = this.value.toLowerCase();
     this.setSelectionRange(pos, pos);
   });
+  document.getElementById('f-num').addEventListener('input', function () {
+    const box = document.getElementById('addr-confirm');
+    if (box && box.style.display !== 'none') {
+      const rua = document.getElementById('f-rua').value;
+      document.getElementById('addr-confirm-line1').textContent = rua + (this.value ? ', ' + this.value : '');
+    }
+  });
 });
 
 // ===== STORAGE =====
@@ -119,10 +126,18 @@ async function buscarCEP() {
 
 function mostrarConfirmacaoEndereco(d) {
   const box = document.getElementById('addr-confirm');
-  const text = document.getElementById('addr-confirm-text');
-  const partes = [d.logradouro, d.bairro, d.localidade && d.uf ? d.localidade + ' - ' + d.uf : d.localidade].filter(Boolean);
-  text.textContent = partes.join(', ');
-  box.style.display = 'flex';
+  const line1 = document.getElementById('addr-confirm-line1');
+  const line2 = document.getElementById('addr-confirm-line2');
+  const line3 = document.getElementById('addr-confirm-line3');
+
+  const num = document.getElementById('f-num').value;
+  const cep = document.getElementById('f-cep').value;
+
+  line1.textContent = (d.logradouro || '') + (num ? ', ' + num : '');
+  line2.textContent = [d.bairro, d.localidade && d.uf ? d.localidade + ' - ' + d.uf : d.localidade].filter(Boolean).join(' • ');
+  line3.textContent = cep ? 'CEP ' + cep : '';
+
+  box.style.display = 'block';
 }
 
 function esconderConfirmacaoEndereco() {
@@ -228,21 +243,26 @@ function render() {
 <td>
   <select class="kit-sel-td" onchange="upd(${p.id},'kit',this.value)">
     <optgroup label="Normal">
-      <option value="3m_normal"    ${p.kit==='3m_normal'?'selected':''}>3m Normal</option>
-      <option value="5m_normal"    ${p.kit==='5m_normal'?'selected':''}>5m Normal</option>
-      <option value="7m_normal"    ${p.kit==='7m_normal'?'selected':''}>7m Normal</option>
-      <option value="ultra_normal" ${p.kit==='ultra_normal'?'selected':''}>Ultra Normal</option>
+      <option value="3m_normal"    ${p.kit==='3m_normal'?'selected':''}>3 meses</option>
+      <option value="5m_normal"    ${p.kit==='5m_normal'?'selected':''}>5 meses</option>
+      <option value="7m_normal"    ${p.kit==='7m_normal'?'selected':''}>7 meses</option>
+      <option value="ultra_normal" ${p.kit==='ultra_normal'?'selected':''}>Ultra (10 meses)</option>
     </optgroup>
     <optgroup label="Desconto 🏷">
-      <option value="3m_desc"    ${p.kit==='3m_desc'?'selected':''}>3m Desc.</option>
-      <option value="5m_desc"    ${p.kit==='5m_desc'?'selected':''}>5m Desc.</option>
-      <option value="7m_desc"    ${p.kit==='7m_desc'?'selected':''}>7m Desc.</option>
-      <option value="ultra_desc" ${p.kit==='ultra_desc'?'selected':''}>Ultra Desc.</option>
+      <option value="3m_desc"    ${p.kit==='3m_desc'?'selected':''}>3 meses</option>
+      <option value="5m_desc"    ${p.kit==='5m_desc'?'selected':''}>5 meses</option>
+      <option value="7m_desc"    ${p.kit==='7m_desc'?'selected':''}>7 meses</option>
+      <option value="ultra_desc" ${p.kit==='ultra_desc'?'selected':''}>Ultra (10 meses)</option>
     </optgroup>
   </select>
 </td>
 <td>
-  <div class="addr-edit-grid">
+  <div class="addr-display" id="addr-display-${p.id}" onclick="toggleAddrEdit(${p.id})">
+    <div class="addr-line1">${esc(p.rua) || '—'}${p.num ? ', ' + esc(p.num) : ''}${p.comp ? ' - ' + esc(p.comp) : ''}</div>
+    <div class="addr-line2">${[esc(p.bairro), p.cidade && p.uf ? esc(p.cidade) + ' - ' + esc(p.uf) : esc(p.cidade)].filter(Boolean).join(' • ')}</div>
+    <div class="addr-line3">${p.cep ? 'CEP ' + esc(p.cep) : ''}</div>
+  </div>
+  <div class="addr-edit-grid" id="addr-edit-${p.id}" style="display:none">
     <input class="td-edit addr-cep" data-field="cep" value="${esc(p.cep)}" placeholder="CEP" onchange="updCEPRow(${p.id},this)">
     <input class="td-edit addr-num" data-field="num" value="${esc(p.num)}" placeholder="Nº" onchange="upd(${p.id},'num',this.value)">
     <input class="td-edit" data-field="uf" value="${esc(p.uf)}" placeholder="UF" maxlength="2" onchange="upd(${p.id},'uf',this.value.toUpperCase())">
@@ -250,6 +270,7 @@ function render() {
     <input class="td-edit addr-full" data-field="comp" value="${esc(p.comp)}" placeholder="Complemento" onchange="upd(${p.id},'comp',this.value)">
     <input class="td-edit addr-full" data-field="bairro" value="${esc(p.bairro)}" placeholder="Bairro" onchange="upd(${p.id},'bairro',this.value)">
     <input class="td-edit addr-full" data-field="cidade" value="${esc(p.cidade)}" placeholder="Cidade" onchange="upd(${p.id},'cidade',this.value)">
+    <button class="addr-done-btn" onclick="toggleAddrEdit(${p.id})">✓ Pronto</button>
   </div>
 </td>
 <td>
@@ -345,6 +366,15 @@ async function updCEPRow(id, input) {
 function upd(id, field, val) {
   const p = pedidos.find(x => x.id === id);
   if (p) { p[field] = val; saveData(); stats(); }
+}
+
+function toggleAddrEdit(id) {
+  const display = document.getElementById('addr-display-' + id);
+  const edit = document.getElementById('addr-edit-' + id);
+  if (!display || !edit) return;
+  const isEditing = edit.style.display !== 'none';
+  edit.style.display = isEditing ? 'none' : 'grid';
+  display.style.display = isEditing ? 'block' : 'none';
 }
 
 function updStatus(id, sel) {

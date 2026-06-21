@@ -152,18 +152,14 @@ textarea { resize: vertical; min-height: 72px; }
 .addr-confirm {
   margin-top: 14px;
   padding: 12px 16px;
-  background: #d4edda;
-  border: 1.5px solid #28a745;
+  background: #fff;
+  border: 1px solid #e5e5e5;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: #155724;
-  font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.6;
 }
-.addr-confirm-icon { font-size: 16px; flex-shrink: 0; }
+.addr-confirm-line1 { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+.addr-confirm-line2 { font-size: 12.5px; color: #555; }
+.addr-confirm-line3 { font-size: 12.5px; color: #888; }
 
 /* ===== STATUS GROUP ===== */
 .status-group { margin-top: 14px; max-width: 220px; }
@@ -294,9 +290,22 @@ tr:hover td { background: #fafeff; }
   color-scheme: light;
 }
 .td-edit:focus { border-color: #ddd; background: #fff !important; outline: none; }
-.data-futura { color: #c0392b !important; font-weight: 700 !important; }
-.data-hoje { color: #1d9e75 !important; font-weight: 700 !important; }
+.data-futura { background: #f7c1c1 !important; color: #1a1a1a !important; font-weight: 700 !important; border-color: #e24b4a !important; }
+.data-hoje { background: #c0dd97 !important; color: #1a1a1a !important; font-weight: 700 !important; border-color: #639922 !important; }
 .status-aguardando { background: #fdecea !important; color: #a32d2d !important; border-color: #e24b4a !important; }
+
+/* ===== ENDEREÇO — MODO EXIBIÇÃO (texto formatado) ===== */
+.addr-display {
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 5px;
+  transition: background .15s;
+  line-height: 1.5;
+}
+.addr-display:hover { background: #f0f6fc; }
+.addr-line1 { font-size: 11px; font-weight: 600; color: #1a1a1a; }
+.addr-line2 { font-size: 10.5px; color: #555; margin-top: 1px; }
+.addr-line3 { font-size: 10.5px; color: #888; margin-top: 1px; }
 
 /* ===== ENDEREÇO EDITÁVEL NA TABELA ===== */
 .addr-edit-grid {
@@ -307,6 +316,14 @@ tr:hover td { background: #fafeff; }
 }
 .addr-edit-grid input { font-size: 10px; padding: 3px 4px; min-width: 0; }
 .addr-edit-grid .addr-full { grid-column: 1 / -1; }
+.addr-done-btn {
+  grid-column: 1 / -1;
+  font-size: 10px; font-weight: 700;
+  background: #185FA5; color: #fff;
+  border: none; border-radius: 5px;
+  padding: 4px 0; cursor: pointer; margin-top: 2px;
+}
+.addr-done-btn:hover { background: #0C447C; }
 .td-sel {
   font-size: 11px; font-weight: 600;
   border: 1.5px solid #185FA5;
