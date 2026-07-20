@@ -3,20 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agendamento – Calmidrol</title>
+<title>Sistema de Agendamento</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="topbar">
   <span class="topbar-icon">💊</span>
-  <span>Sistema de Agendamento – Calmidrol</span>
+  <span>Sistema de Agendamento</span>
+  <button class="theme-toggle-btn" id="theme-toggle" onclick="toggleTema()" title="Alternar modo escuro">🌙</button>
 </div>
 
 <div class="container" id="main-container">
   <div class="tabs">
     <div class="tab active" onclick="switchTab('novo')">＋ Novo pedido</div>
     <div class="tab" onclick="switchTab('lista')">☰ Pedidos <span id="count-badge" class="badge-count">0</span></div>
+    <div class="tab" onclick="switchTab('agendados')">✅ Agendados <span id="count-badge-ag" class="badge-count">0</span></div>
   </div>
 
   <!-- NOVO PEDIDO -->
@@ -59,56 +61,40 @@
 
     <div class="card">
       <div class="sec-title">💊 Kit de tratamento</div>
-      <div class="kit-cards">
-        <div class="kgroup-label">Preço normal</div>
-        <label class="kit-card sel-normal" onclick="selKit(this,'3m_normal')"><input type="radio" name="kit" value="3m_normal" checked>
-          <span class="kbadge kb-n">Normal</span>
-          <div class="kit-name">Protocolo Inicial – 3 meses</div><div class="kit-detail">📦 3 frascos</div>
-          <div class="kit-price-n">R$ 329,00 à vista</div><div class="kit-parcel">ou 12x de R$ 34,03</div>
-        </label>
-        <label class="kit-card" onclick="selKit(this,'5m_normal')"><input type="radio" name="kit" value="5m_normal">
-          <span class="kbadge kb-n">Normal</span>
-          <div class="kit-name">Protocolo Médio – 5 meses</div><div class="kit-detail">📦 5 frascos</div>
-          <div class="kit-price-n">R$ 379,00 à vista</div><div class="kit-parcel">ou 12x de R$ 39,20</div>
-        </label>
-        <label class="kit-card" onclick="selKit(this,'7m_normal')"><input type="radio" name="kit" value="7m_normal">
-          <span class="kbadge kb-n">Normal</span>
-          <div class="kit-name">⭐ Protocolo Completo – 7 meses</div><div class="kit-detail">📦 7 frascos</div>
-          <div class="kit-price-n">R$ 449,00 à vista</div><div class="kit-parcel">ou 12x de R$ 46,44</div>
-        </label>
-        <label class="kit-card" onclick="selKit(this,'ultra_normal')"><input type="radio" name="kit" value="ultra_normal">
-          <span class="kbadge kb-n">Normal</span>
-          <div class="kit-name">🔥 Protocolo Ultra – 10 meses</div><div class="kit-detail">📦 10 frascos</div>
-          <div class="kit-price-n">R$ 539,00 à vista</div><div class="kit-parcel">ou 12x de R$ 55,75</div>
-        </label>
-        <div class="kgroup-label kgroup-sep">Com desconto</div>
-        <label class="kit-card" onclick="selKit(this,'3m_desc')"><input type="radio" name="kit" value="3m_desc">
-          <span class="kbadge kb-d">Desconto</span>
-          <div class="kit-name">Protocolo Inicial – 3 meses</div><div class="kit-detail">📦 3 frascos</div>
-          <div class="kit-price-d">R$ 309,02 à vista</div><div class="kit-parcel">ou 12x de R$ 31,96</div>
-        </label>
-        <label class="kit-card" onclick="selKit(this,'5m_desc')"><input type="radio" name="kit" value="5m_desc">
-          <span class="kbadge kb-d">Desconto</span>
-          <div class="kit-name">Protocolo Médio – 5 meses</div><div class="kit-detail">📦 5 frascos</div>
-          <div class="kit-price-d">R$ 359,00 à vista</div><div class="kit-parcel">ou 12x de R$ 37,13</div>
-        </label>
-        <label class="kit-card" onclick="selKit(this,'7m_desc')"><input type="radio" name="kit" value="7m_desc">
-          <span class="kbadge kb-d">Desconto</span>
-          <div class="kit-name">⭐ Protocolo Completo – 7 meses</div><div class="kit-detail">📦 7 frascos</div>
-          <div class="kit-price-d">R$ 429,00 à vista</div><div class="kit-parcel">ou 12x de R$ 44,37</div>
-        </label>
-        <label class="kit-card" onclick="selKit(this,'ultra_desc')"><input type="radio" name="kit" value="ultra_desc">
-          <span class="kbadge kb-d">Desconto</span>
-          <div class="kit-name">🔥 Protocolo Ultra – 10 meses</div><div class="kit-detail">📦 10 frascos</div>
-          <div class="kit-price-d">R$ 519,00 à vista</div><div class="kit-parcel">ou 12x de R$ 53,68</div>
-        </label>
+
+      <label class="pag-label">Duração do protocolo</label>
+      <div class="kit-dur-row">
+        <div class="kit-dur-btn sel" id="dur-3m" onclick="selDur(this,'3m')">3 meses</div>
+        <div class="kit-dur-btn" id="dur-5m" onclick="selDur(this,'5m')">5 meses</div>
+        <div class="kit-dur-btn" id="dur-7m" onclick="selDur(this,'7m')">7 meses</div>
+        <div class="kit-dur-btn" id="dur-ultra" onclick="selDur(this,'ultra')">ULTRA</div>
       </div>
+
+      <label class="pag-label kit-tipo-label">Tipo de preço</label>
+      <div class="kit-tipo-row">
+        <div class="kit-tipo-btn sel" id="tipo-normal" data-tipo="normal" onclick="selTipo(this,'normal')">Preço normal</div>
+        <div class="kit-tipo-btn" id="tipo-desc" data-tipo="desc" onclick="selTipo(this,'desc')">Com desconto</div>
+      </div>
+
+      <div class="kit-info-line" id="kit-info-line">📦 3 frascos — Protocolo Inicial – 3 meses</div>
+
+      <div class="form-grid g2 kit-valor-grid">
+        <div class="form-group">
+          <label>Valor à vista (R$)</label>
+          <input type="text" id="f-valor-avista">
+        </div>
+        <div class="form-group">
+          <label>Parcelamento</label>
+          <select id="f-parcelamento"></select>
+        </div>
+      </div>
+
       <div class="pag-section">
         <label class="pag-label">Forma de pagamento</label>
         <div class="pag-opts">
           <div class="pag-btn sel" onclick="selPag(this,'ambos')">Ambas as opções</div>
           <div class="pag-btn" onclick="selPag(this,'avista')">À vista</div>
-          <div class="pag-btn" onclick="selPag(this,'parcelado')">Parcelado (12x)</div>
+          <div class="pag-btn" onclick="selPag(this,'parcelado')">Parcelado</div>
         </div>
       </div>
     </div>
@@ -141,11 +127,6 @@
     </div>
     <div class="filter-bar">
       <input type="text" id="fil-nome" placeholder="🔍 Buscar nome ou CPF..." oninput="render()">
-      <select id="fil-status" onchange="render()">
-        <option value="">Todos os status</option>
-        <option value="agendar">Agendar</option>
-        <option value="agendado">Agendado</option>
-      </select>
       <select id="fil-kit" onchange="render()">
         <option value="">Todos os kits</option>
         <option value="3m_normal">3 meses – Normal</option>
@@ -167,25 +148,66 @@
       <table>
         <colgroup>
           <col style="width:8%">
-          <col style="width:11%">
-          <col style="width:9%">
-          <col style="width:9%">
-          <col style="width:11%">
+          <col style="width:13%">
+          <col style="width:13%">
+          <col style="width:14%">
           <col style="width:8%">
-          <col style="width:18%">
-          <col style="width:7%">
-          <col style="width:9%">
-          <col style="width:8%">
-          <col style="width:2%">
+          <col style="width:10%">
+          <col style="width:28%">
+          <col style="width:6%">
         </colgroup>
         <thead><tr>
-          <th>Data</th><th>Nome</th><th>Telefone</th><th>CPF</th><th>E-mail</th>
-          <th>Kit</th><th>Endereço</th>
+          <th>Data</th><th>Nome</th><th>Telefone</th>
+          <th>Kit</th>
           <th>Status</th><th>Termo</th><th>Informações</th><th></th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
       <div id="empty-msg" class="empty">📭 Nenhum pedido encontrado</div>
+    </div>
+  </div>
+
+  <!-- AGENDADOS -->
+  <div id="sec-agendados" class="section">
+    <div class="filter-bar">
+      <input type="text" id="fil-nome-ag" placeholder="🔍 Buscar nome ou CPF..." oninput="renderAgendados()">
+      <select id="fil-kit-ag" onchange="renderAgendados()">
+        <option value="">Todos os kits</option>
+        <option value="3m_normal">3 meses – Normal</option>
+        <option value="5m_normal">5 meses – Normal</option>
+        <option value="7m_normal">7 meses – Normal</option>
+        <option value="ultra_normal">Ultra – Normal</option>
+        <option value="3m_desc">3 meses – Desconto</option>
+        <option value="5m_desc">5 meses – Desconto</option>
+        <option value="7m_desc">7 meses – Desconto</option>
+        <option value="ultra_desc">Ultra – Desconto</option>
+      </select>
+      <select id="fil-termo-ag" onchange="renderAgendados()">
+        <option value="">Todos os termos</option>
+        <option value="confirmado">Confirmado</option>
+        <option value="pendente">Pendente</option>
+      </select>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <colgroup>
+          <col style="width:8%">
+          <col style="width:13%">
+          <col style="width:13%">
+          <col style="width:14%">
+          <col style="width:8%">
+          <col style="width:10%">
+          <col style="width:28%">
+          <col style="width:6%">
+        </colgroup>
+        <thead><tr>
+          <th>Data</th><th>Nome</th><th>Telefone</th>
+          <th>Kit</th>
+          <th>Status</th><th>Termo</th><th>Informações</th><th></th>
+        </tr></thead>
+        <tbody id="tbody-ag"></tbody>
+      </table>
+      <div id="empty-msg-ag" class="empty">📭 Nenhum pedido agendado ainda</div>
     </div>
   </div>
 </div>
@@ -199,6 +221,14 @@
       <button class="mbtn-cancel" onclick="closeConf()">Cancelar</button>
       <button class="mbtn-del" onclick="confirmDel()">Excluir</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal dados completos do cliente -->
+<div class="overlay" id="view-overlay" onclick="if(event.target===this) closeView()">
+  <div class="modal modal-view">
+    <button class="view-close" onclick="closeView()" title="Fechar">✕</button>
+    <div class="view-body" id="view-body"></div>
   </div>
 </div>
 
