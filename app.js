@@ -2,7 +2,8 @@
 const SK = 'pedidos-calmidrol-v4';
 let pedidos = [];
 let delId = null;
-let selKitVal = '3m_normal';
+let selDurVal = '3m';
+let selTipoVal = 'normal';
 let selPagVal = 'ambos';
 
 const KITS = {
@@ -19,12 +20,26 @@ const KITS = {
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
+  aplicarTema(localStorage.getItem('calmidrol-tema') === 'dark');
 
+  document.getElementById('f-data').value = todayStr();
+  preencherValoresKit();
+
+  document.getElementById('f-nome').addEventListener('input', function () {
+    const pos = this.selectionStart;
+    this.value = capitalizeNome(this.value);
+    this.setSelectionRange(pos, pos);
+  });
   document.getElementById('f-cpf').addEventListener('input', function () {
     this.value = fmtCPF(this.value);
   });
   document.getElementById('f-tel').addEventListener('input', function () {
     this.value = fmtTel(this.value);
+  });
+  document.getElementById('f-valor-avista').addEventListener('input', function () {
+    const selEl = document.getElementById('f-parcelamento');
+    const atual = parseInt(selEl.value || '12', 10);
+    popularParcelamento(selEl, parseValorBR(this.value), atual);
   });
   document.getElementById('f-uf').addEventListener('input', function () {
     this.value = this.value.toUpperCase();
@@ -35,6 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
     this.setSelectionRange(pos, pos);
   });
   document.getElementById('f-num').addEventListener('input', atualizarConfirmacaoEndereco);
+  document.getElementById('f-rua').addEventListener('input', function () { formatarPalavras(this); });
+  document.getElementById('f-comp').addEventListener('input', function () { formatarPalavras(this); });
+  document.getElementById('f-bairro').addEventListener('input', function () { formatarPalavras(this); });
+  document.getElementById('f-cidade').addEventListener('input', function () { formatarPalavras(this); });
   document.getElementById('f-comp').addEventListener('input', atualizarConfirmacaoEndereco);
   document.getElementById('f-rua').addEventListener('input', atualizarConfirmacaoEndereco);
   document.getElementById('f-bairro').addEventListener('input', atualizarConfirmacaoEndereco);
@@ -77,24 +96,102 @@ function saveData() {
   localStorage.setItem(SK, JSON.stringify(pedidos));
 }
 
+// ===== TEMA (claro/escuro) =====
+function aplicarTema(escuro) {
+  document.body.classList.toggle('dark', escuro);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = escuro ? '☀️' : '🌙';
+  localStorage.setItem('calmidrol-tema', escuro ? 'dark' : 'light');
+}
+
+function toggleTema() {
+  aplicarTema(!document.body.classList.contains('dark'));
+}
+
 // ===== TABS =====
 function switchTab(t) {
+  const idxMap = { novo: 0, lista: 1, agendados: 2 };
   document.querySelectorAll('.tab').forEach((el, i) =>
-    el.classList.toggle('active', i === (t === 'novo' ? 0 : 1))
+    el.classList.toggle('active', i === idxMap[t])
   );
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   document.getElementById('sec-' + t).classList.add('active');
-  document.getElementById('main-container').classList.toggle('full-width', t === 'lista');
+  document.getElementById('main-container').classList.toggle('full-width', t === 'lista' || t === 'agendados');
   if (t === 'lista') render();
+  if (t === 'agendados') renderAgendados();
 }
 
 // ===== KIT & PAGAMENTO =====
-function selKit(el, val) {
-  document.querySelectorAll('.kit-card').forEach(k => {
-    k.classList.remove('sel-normal', 'sel-desc');
-  });
-  selKitVal = val;
-  el.classList.add(val.includes('_desc') ? 'sel-desc' : 'sel-normal');
+function kitAtualKey() {
+  return selDurVal + '_' + selTipoVal;
+}
+
+function selDur(el, val) {
+  document.querySelectorAll('.kit-dur-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  selDurVal = val;
+  preencherValoresKit();
+}
+
+function selTipo(el, val) {
+  document.querySelectorAll('.kit-tipo-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  selTipoVal = val;
+  preencherValoresKit();
+}
+
+// Preenche automaticamente os campos de valor com o preço padrão do kit
+// selecionado. O usuário pode digitar por cima para alterar manualmente.
+function preencherValoresKit() {
+  const k = KITS[kitAtualKey()];
+  if (!k) return;
+  const avistaNum = parseValorBR(valorNumerico(k.avista));
+  document.getElementById('f-valor-avista').value = fmtMoeda(avistaNum);
+  popularParcelamento(document.getElementById('f-parcelamento'), avistaNum, 12);
+  document.getElementById('kit-info-line').textContent = '📦 ' + k.frascos + ' frascos — ' + k.nome;
+}
+
+// Extrai só o número (ex: "R$ 329,00" -> "329,00"; "12x de R$ 34,03" -> "34,03")
+function valorNumerico(v) {
+  const m = (v || '').match(/[\d.,]+/);
+  return m ? m[0] : '';
+}
+
+// Taxa mensal usada no parcelamento (equivalente à tabela de parcelas do site)
+const TAXA_PARCELA = 0.0349;
+
+function calcParcelas(pv) {
+  const arr = [];
+  for (let n = 1; n <= 12; n++) {
+    let valor;
+    if (n === 1) valor = pv;
+    else {
+      const fator = TAXA_PARCELA / (1 - Math.pow(1 + TAXA_PARCELA, -n));
+      valor = pv * fator;
+    }
+    arr.push({ n, valor: Math.round(valor * 100) / 100 });
+  }
+  return arr;
+}
+
+// Recria as opções de um select de parcelamento a partir do valor à vista.
+// alvoN é a parcela que deve ficar selecionada (usa 12 se não for possível).
+function popularParcelamento(selEl, pv, alvoN) {
+  const parcelas = calcParcelas(pv);
+  selEl.innerHTML = parcelas.map(p =>
+    `<option value="${p.n}">${p.n}x de R$ ${fmtMoeda(p.valor)}${p.n === 1 ? ' (à vista)' : ''}</option>`
+  ).join('');
+  selEl.value = parcelas.some(p => p.n === alvoN) ? alvoN : 12;
+}
+
+function fmtMoeda(v) {
+  return v.toFixed(2).replace('.', ',');
+}
+
+function parseValorBR(v) {
+  const m = String(v || '').match(/[\d.,]+/);
+  if (!m) return 0;
+  return parseFloat(m[0].replace(/\./g, '').replace(',', '.')) || 0;
 }
 
 function selPag(el, val) {
@@ -178,6 +275,11 @@ function salvar() {
   const nome = document.getElementById('f-nome').value.trim();
   if (!nome) { showToast('Informe o nome do paciente', 'error'); return; }
 
+  const kit = kitAtualKey();
+  const valorAvista = parseValorBR(document.getElementById('f-valor-avista').value);
+  const parcN = parseInt(document.getElementById('f-parcelamento').value || '12', 10);
+  const parcelaEscolhida = calcParcelas(valorAvista).find(p => p.n === parcN) || { n: 12, valor: valorAvista };
+
   const p = {
     id: Date.now(),
     data:    document.getElementById('f-data').value,
@@ -192,7 +294,9 @@ function salvar() {
     bairro:  document.getElementById('f-bairro').value,
     cidade:  document.getElementById('f-cidade').value,
     uf:      document.getElementById('f-uf').value.toUpperCase(),
-    kit:     selKitVal,
+    kit,
+    precoAvista: 'R$ ' + fmtMoeda(valorAvista),
+    precoParc:   parcelaEscolhida.n + 'x de R$ ' + fmtMoeda(parcelaEscolhida.valor),
     pagamento: selPagVal,
     info:    document.getElementById('f-info').value,
     status:  document.getElementById('f-status').value,
@@ -203,19 +307,22 @@ function salvar() {
   saveData();
   badge();
   stats();
+  render();
+  renderAgendados();
   clearForm();
   showToast('✅ Pedido salvo com sucesso!');
 }
 
 function clearForm() {
-  ['f-data','f-nome','f-cpf','f-tel','f-email','f-cep','f-rua','f-num','f-comp','f-bairro','f-cidade','f-uf','f-info']
+  ['f-nome','f-cpf','f-tel','f-email','f-cep','f-rua','f-num','f-comp','f-bairro','f-cidade','f-uf','f-info']
     .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-data').value = todayStr();
   document.getElementById('f-status').value = 'agendar';
-  document.querySelectorAll('.kit-card').forEach((k, i) => {
-    k.classList.remove('sel-normal', 'sel-desc');
-    if (i === 0) k.classList.add('sel-normal');
-  });
-  selKitVal = '3m_normal';
+  document.querySelectorAll('.kit-dur-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
+  document.querySelectorAll('.kit-tipo-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
+  selDurVal = '3m';
+  selTipoVal = 'normal';
+  preencherValoresKit();
   document.querySelectorAll('.pag-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
   selPagVal = 'ambos';
   esconderConfirmacaoEndereco();
@@ -224,16 +331,15 @@ function clearForm() {
 // ===== RENDER LISTA =====
 function render() {
   const fn = (document.getElementById('fil-nome').value || '').toLowerCase();
-  const fs = document.getElementById('fil-status').value;
   const fk = document.getElementById('fil-kit').value;
   const ft = document.getElementById('fil-termo').value;
 
   const list = pedidos.filter(p => {
+    if (p.status === 'agendado') return false; // esses vivem na aba Agendados
     const mn = !fn || p.nome.toLowerCase().includes(fn) || (p.cpf || '').includes(fn);
-    const ms = !fs || p.status === fs;
     const mk = !fk || p.kit === fk;
     const mt = !ft || (p.termo || 'pendente') === ft;
-    return mn && ms && mk && mt;
+    return mn && mk && mt;
   });
 
   const tbody = document.getElementById('tbody');
@@ -245,31 +351,48 @@ function render() {
     return;
   }
   empty.style.display = 'none';
+  tbody.innerHTML = list.map(pedidoRowHtml).join('');
+}
 
-  tbody.innerHTML = list.map(p => {
-    const endParts = [
-      p.rua && p.num ? p.rua + ', ' + p.num : p.rua,
-      p.comp,
-      p.bairro,
-      (p.cidade || '') + (p.uf ? ' – ' + p.uf : ''),
-      p.cep ? 'CEP ' + p.cep : ''
-    ].filter(Boolean);
-    const end = endParts.join(' • ');
-    const termo = p.termo || 'pendente';
-    const pillClass = termo === 'confirmado' ? 'pill-conf' : 'pill-pend';
-    const pillLabel = termo === 'confirmado' ? '✅ Confirmado' : '⏳ Pendente';
+function renderAgendados() {
+  const fn = (document.getElementById('fil-nome-ag').value || '').toLowerCase();
+  const fk = document.getElementById('fil-kit-ag').value;
+  const ft = document.getElementById('fil-termo-ag').value;
 
-    const dataClass = dataCssClass(p.data);
-    const statusClass = statusCssClass(p);
+  const list = pedidos.filter(p => {
+    if (p.status !== 'agendado') return false; // só os já agendados
+    const mn = !fn || p.nome.toLowerCase().includes(fn) || (p.cpf || '').includes(fn);
+    const mk = !fk || p.kit === fk;
+    const mt = !ft || (p.termo || 'pendente') === ft;
+    return mn && mk && mt;
+  });
 
-    return `<tr>
+  const tbody = document.getElementById('tbody-ag');
+  const empty = document.getElementById('empty-msg-ag');
+
+  if (!list.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(pedidoRowHtml).join('');
+}
+
+function pedidoRowHtml(p) {
+  const termo = p.termo || 'pendente';
+  const pillClass = termo === 'confirmado' ? 'pill-conf' : 'pill-pend';
+  const pillLabel = termo === 'confirmado' ? '✅ Confirmado' : '⏳ Pendente';
+
+  const dataClass = dataCssClass(p.data);
+  const statusClass = statusCssClass(p);
+
+  return `<tr>
 <td><input class="td-edit ${dataClass}" type="date" value="${esc(p.data)}" onchange="updData(${p.id},this)"></td>
-<td><input class="td-edit" value="${esc(p.nome)}" onchange="upd(${p.id},'nome',this.value)"></td>
-<td><input class="td-edit" value="${esc(p.tel)}" onchange="upd(${p.id},'tel',this.value)"></td>
-<td><input class="td-edit" value="${esc(p.cpf)}" onchange="upd(${p.id},'cpf',this.value)"></td>
-<td><input class="td-edit" value="${esc(p.email||'')}" onchange="updEmail(${p.id},this)"></td>
+<td><input class="td-edit" value="${esc(p.nome)}" onchange="updNome(${p.id},this)"></td>
+<td><input class="td-edit" value="${esc(p.tel)}" onchange="updTel(${p.id},this)"></td>
 <td>
-  <select class="kit-sel-td" onchange="upd(${p.id},'kit',this.value)">
+  <select class="kit-sel-td" onchange="updKitRow(${p.id},this)">
     <optgroup label="Normal">
       <option value="3m_normal"    ${p.kit==='3m_normal'?'selected':''}>3 meses</option>
       <option value="5m_normal"    ${p.kit==='5m_normal'?'selected':''}>5 meses</option>
@@ -285,23 +408,6 @@ function render() {
   </select>
 </td>
 <td>
-  <div class="addr-display" id="addr-display-${p.id}" onclick="toggleAddrEdit(${p.id})">
-    <div class="addr-line1">${esc(p.rua) || '—'}${p.num ? ', ' + esc(p.num) : ''}${p.comp ? ' - ' + esc(p.comp) : ''}</div>
-    <div class="addr-line2">${[esc(p.bairro), p.cidade && p.uf ? esc(p.cidade) + ' - ' + esc(p.uf) : esc(p.cidade)].filter(Boolean).join(' • ')}</div>
-    <div class="addr-line3">${p.cep ? 'CEP ' + esc(p.cep) : ''}</div>
-  </div>
-  <div class="addr-edit-grid" id="addr-edit-${p.id}" style="display:none">
-    <input class="td-edit addr-cep" data-field="cep" value="${esc(p.cep)}" placeholder="CEP" onchange="updCEPRow(${p.id},this)">
-    <input class="td-edit addr-num" data-field="num" value="${esc(p.num)}" placeholder="Nº" onchange="upd(${p.id},'num',this.value)">
-    <input class="td-edit" data-field="uf" value="${esc(p.uf)}" placeholder="UF" maxlength="2" onchange="upd(${p.id},'uf',this.value.toUpperCase())">
-    <input class="td-edit addr-full" data-field="rua" value="${esc(p.rua)}" placeholder="Rua" onchange="upd(${p.id},'rua',this.value)">
-    <input class="td-edit addr-full" data-field="comp" value="${esc(p.comp)}" placeholder="Complemento" onchange="upd(${p.id},'comp',this.value)">
-    <input class="td-edit addr-full" data-field="bairro" value="${esc(p.bairro)}" placeholder="Bairro" onchange="upd(${p.id},'bairro',this.value)">
-    <input class="td-edit addr-full" data-field="cidade" value="${esc(p.cidade)}" placeholder="Cidade" onchange="upd(${p.id},'cidade',this.value)">
-    <button class="addr-done-btn" onclick="toggleAddrEdit(${p.id})">✓ Pronto</button>
-  </div>
-</td>
-<td>
   <select class="td-sel ${statusClass}" onchange="updStatus(${p.id},this)">
     <option value="agendar"  ${p.status==='agendar'?'selected':''}>Agendar</option>
     <option value="agendado" ${p.status==='agendado'?'selected':''}>Agendado</option>
@@ -314,9 +420,13 @@ function render() {
 <td>
   <textarea class="info-ta" onchange="upd(${p.id},'info',this.value)">${esc(p.info || '')}</textarea>
 </td>
-<td><button class="btn-del" onclick="askDel(${p.id})" title="Excluir pedido">🗑</button></td>
+<td class="td-actions">
+  <div class="tbl-actions">
+    <button class="btn-view" onclick="verPedido(${p.id})" title="Ver dados completos">👁</button>
+    <button class="btn-del" onclick="askDel(${p.id})" title="Excluir pedido">🗑</button>
+  </div>
+</td>
 </tr>`;
-  }).join('');
 }
 
 // ===== DATA / STATUS HELPERS =====
@@ -332,7 +442,8 @@ function dataCssClass(dataVal) {
   if (!dataVal) return '';
   const hoje = todayStr();
   if (dataVal > hoje) return 'data-futura';
-  return 'data-hoje';
+  if (dataVal < hoje) return 'data-passada';
+  return 'data-chegou';
 }
 
 function statusCssClass(p) {
@@ -357,6 +468,21 @@ function updEmail(id, input) {
   input.value = input.value.toLowerCase();
   input.setSelectionRange(pos, pos);
   upd(id, 'email', input.value);
+}
+
+function updNome(id, input) {
+  input.value = capitalizeNome(input.value);
+  upd(id, 'nome', input.value);
+}
+
+function updCPF(id, input) {
+  input.value = fmtCPF(input.value);
+  upd(id, 'cpf', input.value);
+}
+
+function updTel(id, input) {
+  input.value = fmtTel(input.value);
+  upd(id, 'tel', input.value);
 }
 
 async function updCEPRow(id, input) {
@@ -427,11 +553,25 @@ function toggleAddrEdit(id) {
   display.style.display = isEditing ? 'block' : 'none';
 }
 
+function updKitRow(id, sel) {
+  const val = sel.value;
+  const k = KITS[val] || {};
+  const p = pedidos.find(x => x.id === id);
+  if (p) {
+    p.kit = val;
+    p.precoAvista = k.avista;
+    p.precoParc = k.parc;
+    saveData();
+    stats();
+  }
+}
+
 function updStatus(id, sel) {
   const val = sel.value;
   upd(id, 'status', val);
-  const p = pedidos.find(x => x.id === id);
-  sel.className = 'td-sel ' + statusCssClass(p);
+  badge();
+  render();
+  renderAgendados();
 }
 
 // ===== TOGGLE TERMO =====
@@ -442,17 +582,20 @@ function toggleTermo(id) {
   saveData();
   stats();
   render();
+  renderAgendados();
   showToast(p.termo === 'confirmado' ? '✅ Termo confirmado!' : 'Termo marcado como pendente.');
 }
 
 // ===== GERAR TERMO =====
 function gerarTermo(p) {
   const k = KITS[p.kit] || { nome: '—', frascos: '—', avista: '—', parc: '—' };
+  const avista = p.precoAvista || k.avista;
+  const parc   = p.precoParc   || k.parc;
 
   let precoLinha = '';
-  if (p.pagamento === 'avista')         precoLinha = k.avista + ' à vista';
-  else if (p.pagamento === 'parcelado') precoLinha = 'ou ' + k.parc;
-  else                                  precoLinha = k.avista + ' à vista ou ' + k.parc;
+  if (p.pagamento === 'avista')         precoLinha = avista + ' à vista';
+  else if (p.pagamento === 'parcelado') precoLinha = 'ou ' + parc;
+  else                                  precoLinha = avista + ' à vista ou ' + parc;
 
   const rua  = [p.rua, p.num].filter(Boolean).join(', ');
   const comp = p.comp ? '\n▸ COMPLEMENTO – ' + p.comp : '';
@@ -509,13 +652,360 @@ function copyTermo(id) {
     });
 }
 
+// ===== VER / EDITAR DADOS COMPLETOS =====
+let viewId = null;
+let vmEditMode = false;
+let vmCepTimer = null;
+
+function fmtPagamento(v) {
+  if (v === 'avista') return 'À vista';
+  if (v === 'parcelado') return 'Parcelado';
+  return 'Ambas as opções';
+}
+
+function verPedido(id) {
+  viewId = id;
+  vmEditMode = false;
+  renderModalBody();
+  document.getElementById('view-overlay').classList.add('show');
+}
+
+function closeView() {
+  viewId = null;
+  document.getElementById('view-overlay').classList.remove('show');
+}
+
+function pedidoAtualView() {
+  return pedidos.find(x => x.id === viewId);
+}
+
+function vmToggleEdit() {
+  vmEditMode = !vmEditMode;
+  renderModalBody();
+}
+
+function vmCopiarClique(el) {
+  const val = el.getAttribute('data-copy');
+  const label = el.getAttribute('data-label');
+  if (!val) return;
+  navigator.clipboard.writeText(val)
+    .then(() => showToast('📋 ' + label + ' copiado!'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = val;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('📋 ' + label + ' copiado!');
+    });
+}
+
+function vmRow(label, value) {
+  const val = value || '';
+  return `<div class="vm-copy-row" data-copy="${esc(val)}" data-label="${esc(label)}" onclick="vmCopiarClique(this)">
+    <div class="vm-copy-label">${esc(label)}</div>
+    <div class="vm-copy-value">${val ? esc(val) : '—'}</div>
+  </div>`;
+}
+
+function renderModalBody() {
+  const p = pedidoAtualView();
+  if (!p) { closeView(); return; }
+
+  const [dur, tipo] = (p.kit || '3m_normal').split('_');
+  const k = KITS[p.kit] || { nome: '—', frascos: '—' };
+  const avistaNum = parseValorBR(p.precoAvista);
+  const parcAtual = parseInt((p.precoParc || '').match(/^\d+/)?.[0] || '12', 10);
+  const termo = p.termo || 'pendente';
+
+  const editBtnHtml = `<div class="vm-edit-toggle-wrap">
+    <button class="edit-toggle-btn ${vmEditMode ? 'sel' : ''}" onclick="vmToggleEdit()">${vmEditMode ? '✅ Editando' : '✏️ Editar'}</button>
+  </div>`;
+
+  const statusBtnHtml = `<div class="view-section">
+      <div class="view-section-title">📅 Status do agendamento</div>
+      <button class="status-toggle-btn ${p.status==='agendado'?'status-agendado':'status-agendar'}" onclick="vmToggleStatus()">${p.status==='agendado' ? '✅ Agendado' : '🕓 Agendar'}</button>
+    </div>`;
+
+  const termoBtnHtml = `<div class="view-section">
+      <div class="view-section-title">✅ Termo</div>
+      <button class="pill ${termo==='confirmado'?'pill-conf':'pill-pend'}" onclick="vmToggleTermo()">${termo==='confirmado' ? '✅ Confirmado' : '⏳ Pendente'}</button>
+      <button class="term-btn" onclick="copyTermo(${p.id})">📋 Copiar termo</button>
+    </div>`;
+
+  if (!vmEditMode) {
+    // ===== MODO VISUALIZAÇÃO: clicar em qualquer campo copia o valor =====
+    document.getElementById('view-body').innerHTML = `
+      ${editBtnHtml}
+      <div class="view-section">
+        <div class="view-section-title">👤 Paciente</div>
+        ${vmRow('Data', fmtData(p.data))}
+        ${vmRow('Nome completo', p.nome)}
+        ${vmRow('CPF', p.cpf)}
+        ${vmRow('Telefone', p.tel)}
+        ${vmRow('E-mail', p.email)}
+      </div>
+      <div class="view-section">
+        <div class="view-section-title">📍 Endereço</div>
+        ${vmRow('CEP', p.cep)}
+        ${vmRow('Rua / Avenida', p.rua)}
+        ${vmRow('Número', p.num)}
+        ${vmRow('Complemento', p.comp)}
+        ${vmRow('Bairro', p.bairro)}
+        ${vmRow('Cidade', p.cidade)}
+        ${vmRow('UF', p.uf)}
+      </div>
+      <div class="view-section">
+        <div class="view-section-title">💊 Kit e pagamento</div>
+        ${vmRow('Kit', k.nome + ' (' + k.frascos + ' frascos)')}
+        ${vmRow('Valor à vista', p.precoAvista)}
+        ${vmRow('Parcelado', p.precoParc)}
+        ${vmRow('Forma de pagamento', fmtPagamento(p.pagamento))}
+      </div>
+      <div class="view-section">
+        <div class="view-section-title">📝 Observações</div>
+        ${vmRow('Observações', p.info)}
+      </div>
+      ${statusBtnHtml}
+      ${termoBtnHtml}
+    `;
+    return;
+  }
+
+  // ===== MODO EDIÇÃO: campos editáveis de verdade =====
+  document.getElementById('view-body').innerHTML = `
+    ${editBtnHtml}
+    <div class="view-section">
+      <div class="view-section-title">👤 Paciente</div>
+      <div class="form-group"><label>Data</label><input type="date" id="vm-data" value="${esc(p.data)}" onchange="vmSalvar('data',this.value)"></div>
+      <div class="form-group"><label>Nome completo</label><input type="text" id="vm-nome" value="${esc(p.nome)}" onchange="vmSalvarNome(this)"></div>
+      <div class="vm-2col">
+        <div class="form-group"><label>CPF</label><input type="text" id="vm-cpf" value="${esc(p.cpf)}" maxlength="14" onchange="vmSalvarCPF(this)"></div>
+        <div class="form-group"><label>Telefone</label><input type="text" id="vm-tel" value="${esc(p.tel)}" maxlength="15" onchange="vmSalvarTel(this)"></div>
+      </div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="vm-email" value="${esc(p.email||'')}" onchange="vmSalvarEmail(this)"></div>
+    </div>
+
+    <div class="view-section">
+      <div class="view-section-title">📍 Endereço</div>
+      <div class="form-group">
+        <label>CEP</label>
+        <div class="cep-row">
+          <input type="text" id="vm-cep" value="${esc(p.cep)}" maxlength="9" oninput="vmOnCEPInput(this)">
+          <button class="btn-cep" id="vm-btn-cep" onclick="vmBuscarCEP()">Buscar</button>
+        </div>
+      </div>
+      <div class="form-group"><label>Rua / Avenida</label><input type="text" id="vm-rua" value="${esc(p.rua)}" oninput="formatarPalavras(this)" onchange="vmSalvar('rua',this.value)"></div>
+      <div class="vm-2col">
+        <div class="form-group"><label>Número</label><input type="text" id="vm-num" value="${esc(p.num)}" onchange="vmSalvar('num',this.value)"></div>
+        <div class="form-group"><label>Complemento</label><input type="text" id="vm-comp" value="${esc(p.comp)}" oninput="formatarPalavras(this)" onchange="vmSalvar('comp',this.value)"></div>
+      </div>
+      <div class="vm-2col">
+        <div class="form-group"><label>Bairro</label><input type="text" id="vm-bairro" value="${esc(p.bairro)}" oninput="formatarPalavras(this)" onchange="vmSalvar('bairro',this.value)"></div>
+        <div class="form-group"><label>Cidade</label><input type="text" id="vm-cidade" value="${esc(p.cidade)}" oninput="formatarPalavras(this)" onchange="vmSalvar('cidade',this.value)"></div>
+      </div>
+      <div class="form-group status-group"><label>UF</label><input type="text" id="vm-uf" value="${esc(p.uf)}" maxlength="2" onchange="vmSalvar('uf',this.value.toUpperCase())"></div>
+    </div>
+
+    <div class="view-section">
+      <div class="view-section-title">💊 Kit e pagamento</div>
+      <label class="pag-label">Duração</label>
+      <div class="vm-pill-row">
+        <div class="kit-dur-btn ${dur==='3m'?'sel':''}" onclick="vmSelDur('3m')">3 meses</div>
+        <div class="kit-dur-btn ${dur==='5m'?'sel':''}" onclick="vmSelDur('5m')">5 meses</div>
+        <div class="kit-dur-btn ${dur==='7m'?'sel':''}" onclick="vmSelDur('7m')">7 meses</div>
+        <div class="kit-dur-btn ${dur==='ultra'?'sel':''}" onclick="vmSelDur('ultra')">ULTRA</div>
+      </div>
+      <label class="pag-label kit-tipo-label">Tipo de preço</label>
+      <div class="vm-pill-row">
+        <div class="kit-tipo-btn ${tipo==='normal'?'sel':''}" id="vm-tipo-normal" data-tipo="normal" onclick="vmSelTipo('normal')">Preço normal</div>
+        <div class="kit-tipo-btn ${tipo==='desc'?'sel':''}" id="vm-tipo-desc" data-tipo="desc" onclick="vmSelTipo('desc')">Com desconto</div>
+      </div>
+      <div class="vm-2col kit-valor-grid">
+        <div class="form-group"><label>Valor à vista (R$)</label><input type="text" id="vm-valor-avista" value="${fmtMoeda(avistaNum)}"></div>
+        <div class="form-group"><label>Parcelamento</label><select id="vm-parcelamento"></select></div>
+      </div>
+      <label class="pag-label">Forma de pagamento</label>
+      <div class="pag-opts">
+        <div class="pag-btn ${p.pagamento==='ambos'?'sel':''}" onclick="vmSelPag('ambos')">Ambas</div>
+        <div class="pag-btn ${p.pagamento==='avista'?'sel':''}" onclick="vmSelPag('avista')">À vista</div>
+        <div class="pag-btn ${p.pagamento==='parcelado'?'sel':''}" onclick="vmSelPag('parcelado')">Parcelado</div>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <div class="view-section-title">📝 Observações</div>
+      <textarea id="vm-info" onchange="vmSalvar('info',this.value)">${esc(p.info||'')}</textarea>
+    </div>
+
+    ${statusBtnHtml}
+    ${termoBtnHtml}
+  `;
+
+  const parcSel = document.getElementById('vm-parcelamento');
+  popularParcelamento(parcSel, avistaNum, parcAtual);
+
+  document.getElementById('vm-valor-avista').addEventListener('input', function () {
+    const atual = parseInt(parcSel.value || '12', 10);
+    popularParcelamento(parcSel, parseValorBR(this.value), atual);
+  });
+  document.getElementById('vm-valor-avista').addEventListener('change', vmSalvarPreco);
+  parcSel.addEventListener('change', vmSalvarPreco);
+}
+
+function vmSalvar(field, val) {
+  const p = pedidoAtualView();
+  if (!p) return;
+  p[field] = val;
+  saveData();
+  stats();
+  render();
+  renderAgendados();
+}
+
+function vmSalvarNome(input) { input.value = capitalizeNome(input.value); vmSalvar('nome', input.value); }
+function vmSalvarCPF(input)  { input.value = fmtCPF(input.value); vmSalvar('cpf', input.value); }
+function vmSalvarTel(input)  { input.value = fmtTel(input.value); vmSalvar('tel', input.value); }
+function vmSalvarEmail(input){ input.value = input.value.toLowerCase(); vmSalvar('email', input.value); }
+
+function vmSalvarPreco() {
+  const p = pedidoAtualView();
+  if (!p) return;
+  const avistaNum = parseValorBR(document.getElementById('vm-valor-avista').value);
+  const parcN = parseInt(document.getElementById('vm-parcelamento').value || '12', 10);
+  const parcela = calcParcelas(avistaNum).find(x => x.n === parcN) || { n: 12, valor: avistaNum };
+  p.precoAvista = 'R$ ' + fmtMoeda(avistaNum);
+  p.precoParc = parcela.n + 'x de R$ ' + fmtMoeda(parcela.valor);
+  saveData();
+  stats();
+  render();
+  renderAgendados();
+}
+
+function vmSelDur(val) {
+  const p = pedidoAtualView();
+  if (!p) return;
+  const tipo = (p.kit || '3m_normal').split('_')[1] || 'normal';
+  aplicarKitModal(val, tipo);
+}
+
+function vmSelTipo(val) {
+  const p = pedidoAtualView();
+  if (!p) return;
+  const dur = (p.kit || '3m_normal').split('_')[0] || '3m';
+  aplicarKitModal(dur, val);
+}
+
+function aplicarKitModal(dur, tipo) {
+  const p = pedidoAtualView();
+  if (!p) return;
+  const kit = dur + '_' + tipo;
+  const k = KITS[kit];
+  if (!k) return;
+  p.kit = kit;
+  p.precoAvista = k.avista;
+  p.precoParc = k.parc;
+  saveData();
+  stats();
+  render();
+  renderAgendados();
+  renderModalBody();
+}
+
+function vmSelPag(val) {
+  const p = pedidoAtualView();
+  if (!p) return;
+  p.pagamento = val;
+  saveData();
+  stats();
+  render();
+  renderAgendados();
+  renderModalBody();
+}
+
+function vmToggleStatus() {
+  const p = pedidoAtualView();
+  if (!p) return;
+  p.status = p.status === 'agendado' ? 'agendar' : 'agendado';
+  saveData();
+  stats();
+  badge();
+  render();
+  renderAgendados();
+  renderModalBody();
+}
+
+function vmToggleTermo() {
+  if (viewId == null) return;
+  toggleTermo(viewId);
+  renderModalBody();
+}
+
+function vmOnCEPInput(el) {
+  el.value = fmtCEP(el.value);
+  const digits = el.value.replace(/\D/g, '');
+  if (digits.length === 8) {
+    clearTimeout(vmCepTimer);
+    vmCepTimer = setTimeout(vmBuscarCEP, 600);
+  }
+}
+
+async function vmBuscarCEP() {
+  const p = pedidoAtualView();
+  if (!p) return;
+  const cepInput = document.getElementById('vm-cep');
+  cepInput.value = fmtCEP(cepInput.value);
+  vmSalvar('cep', cepInput.value);
+  const cepVal = cepInput.value.replace(/\D/g, '');
+  if (cepVal.length !== 8) { showToast('Digite um CEP válido com 8 dígitos', 'error'); return; }
+
+  const btn = document.getElementById('vm-btn-cep');
+  btn.disabled = true;
+  btn.textContent = 'Buscando...';
+
+  let dados = null;
+  try {
+    const r = await fetch('https://viacep.com.br/ws/' + cepVal + '/json/');
+    const d = await r.json();
+    if (!d.erro) dados = { logradouro: d.logradouro, bairro: d.bairro, localidade: d.localidade, uf: d.uf };
+  } catch (e) { /* tenta backup */ }
+
+  if (!dados) {
+    try {
+      const r2 = await fetch('https://brasilapi.com.br/api/cep/v1/' + cepVal);
+      if (r2.ok) {
+        const d2 = await r2.json();
+        dados = { logradouro: d2.street, bairro: d2.neighborhood, localidade: d2.city, uf: d2.state };
+      }
+    } catch (e2) { /* sem dados */ }
+  }
+
+  if (dados && (dados.logradouro || dados.localidade)) {
+    document.getElementById('vm-rua').value = dados.logradouro || '';
+    document.getElementById('vm-bairro').value = dados.bairro || '';
+    document.getElementById('vm-cidade').value = dados.localidade || '';
+    document.getElementById('vm-uf').value = (dados.uf || '').toUpperCase();
+    vmSalvar('rua', dados.logradouro || '');
+    vmSalvar('bairro', dados.bairro || '');
+    vmSalvar('cidade', dados.localidade || '');
+    vmSalvar('uf', (dados.uf || '').toUpperCase());
+    showToast('✅ Endereço preenchido automaticamente!');
+  } else {
+    showToast('CEP não encontrado ou serviço indisponível no momento.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Buscar';
+}
+
 // ===== EXCLUIR =====
 function askDel(id) { delId = id; document.getElementById('conf-overlay').classList.add('show'); }
 function closeConf() { delId = null; document.getElementById('conf-overlay').classList.remove('show'); }
 function confirmDel() {
   if (delId) {
     pedidos = pedidos.filter(p => p.id !== delId);
-    saveData(); badge(); stats(); render();
+    saveData(); badge(); stats(); render(); renderAgendados();
     showToast('Pedido excluído.');
   }
   closeConf();
@@ -523,7 +1013,8 @@ function confirmDel() {
 
 // ===== CONTADORES =====
 function badge() {
-  document.getElementById('count-badge').textContent = pedidos.length;
+  document.getElementById('count-badge').textContent = pedidos.filter(p => p.status !== 'agendado').length;
+  document.getElementById('count-badge-ag').textContent = pedidos.filter(p => p.status === 'agendado').length;
 }
 function stats() {
   document.getElementById('st-total').textContent = pedidos.length;
@@ -542,6 +1033,28 @@ function showToast(msg, type) {
 }
 
 // ===== FORMATAÇÕES =====
+const NOME_PREPOSICOES = ['de', 'da', 'do', 'das', 'dos', 'e'];
+
+function capitalizeNome(v) {
+  return v
+    .toLowerCase()
+    .split(' ')
+    .map((palavra, i) => {
+      if (!palavra) return palavra;
+      if (i !== 0 && NOME_PREPOSICOES.includes(palavra)) return palavra;
+      return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+    })
+    .join(' ');
+}
+
+// Aplica a mesma capitalização (1ª letra maiúscula por palavra, resto minúsculo)
+// a um campo enquanto o usuário digita, preservando a posição do cursor.
+function formatarPalavras(input) {
+  const pos = input.selectionStart;
+  input.value = capitalizeNome(input.value);
+  input.setSelectionRange(pos, pos);
+}
+
 function fmtCPF(v) {
   v = v.replace(/\D/g, '');
   if (v.length > 3)  v = v.slice(0,3)  + '.' + v.slice(3);
