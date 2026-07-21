@@ -464,14 +464,14 @@ body.dark .info-ta:focus { background: var(--input-bg); }
 .pill-pend { background: #e8e8e8; color: #1a1a1a; }
 
 .term-btn {
-  font-size: 9.5px; border: 1px solid #bbb;
+  font-size: 9.5px; border: 1px solid #6b7480;
   border-radius: 5px; padding: 3px 6px;
-  background: #e8e8e8; cursor: pointer; color: #1a1a1a;
+  background: #8a94a1; cursor: pointer; color: #fff;
   display: flex; align-items: center; justify-content: center; gap: 3px;
   margin-top: 4px; transition: all .15s; font-weight: 600;
   font-family: inherit; width: 100%; white-space: nowrap;
 }
-.term-btn:hover { background: #d8d8d8; color: #1a1a1a; border-color: #999; }
+.term-btn:hover { background: #75808d; color: #fff; border-color: #5a6270; }
 
 /* ===== DEL BTN ===== */
 .td-actions { padding-right: 12px !important; padding-left: 8px !important; }
