@@ -332,6 +332,17 @@ body.dark .pag-btn.sel { background: rgba(111,168,220,.16); }
 }
 .filter-bar input { min-width: 200px; flex: 2; }
 .filter-bar select { flex: 1; min-width: 140px; }
+.btn-arquivar {
+  padding: 10px 16px;
+  border: 1.5px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--unsel-bg);
+  color: var(--unsel-text);
+  font-size: 13px; font-weight: 700; font-family: inherit;
+  cursor: pointer; white-space: nowrap;
+  transition: all .15s;
+}
+.btn-arquivar:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ===== TABLE ===== */
 .tbl-wrap {
@@ -367,9 +378,10 @@ tr:hover td { background: var(--hover-bg); }
 body.dark .td-edit { color-scheme: dark !important; }
 .td-edit:focus { border-color: var(--input-border); background: var(--input-bg) !important; outline: none; }
 .data-futura { background: #ef9494 !important; color: #7a1414 !important; font-weight: 700 !important; border-color: #d62d2d !important; }
-.data-chegou { background: #9edb7a !important; color: #14531b !important; font-weight: 700 !important; border-color: #3d8b1e !important; }
-.data-passada { background: #fff3cd !important; color: #5c4200 !important; font-weight: 700 !important; border-color: #f0ad00 !important; }
-.status-aguardando { background: #ef9494 !important; color: #7a1414 !important; border-color: #d62d2d !important; }
+.data-verde { background: #9edb7a !important; color: #14531b !important; font-weight: 700 !important; border-color: #3d8b1e !important; }
+.status-vermelho { background: #ef9494 !important; color: #7a1414 !important; border-color: #d62d2d !important; }
+.status-verde { background: #9edb7a !important; color: #14531b !important; border-color: #3d8b1e !important; }
+.status-cinza { background: #e8e8e8 !important; color: #1a1a1a !important; border-color: #bbb !important; }
 
 /* ===== ENDEREÇO — MODO EXIBIÇÃO (texto formatado) ===== */
 .addr-display {
@@ -423,8 +435,8 @@ body.dark .td-edit { color-scheme: dark !important; }
 .kit-sel-td:focus { outline: none; border-color: #0C447C; }
 
 /* Status colorido */
-.status-agendar { background: #fff3cd !important; color: #5c4200 !important; border-color: #f0ad00 !important; }
-.status-agendado { background: #a6e8b5 !important; color: #0d3d17 !important; border-color: #2e9e40 !important; }
+.status-agendar { background: #e8e8e8 !important; color: #1a1a1a !important; border-color: #bbb !important; }
+.status-agendado { background: #e8e8e8 !important; color: #1a1a1a !important; border-color: #bbb !important; }
 .info-ta {
   font-size: 11px; font-weight: 500;
   border: 1.5px solid #185FA5;
@@ -448,18 +460,18 @@ body.dark .info-ta:focus { background: var(--input-bg); }
   width: 100%; justify-content: center;
 }
 .pill:hover { opacity: .85; transform: scale(.97); }
-.pill-conf { background: #a6e8b5; color: #0d3d17; }
-.pill-pend { background: #fff3cd; color: #5c4200; }
+.pill-conf { background: #9edb7a; color: #14531b; }
+.pill-pend { background: #e8e8e8; color: #1a1a1a; }
 
 .term-btn {
-  font-size: 9.5px; border: 1px solid var(--input-border);
+  font-size: 9.5px; border: 1px solid #bbb;
   border-radius: 5px; padding: 3px 6px;
-  background: var(--unsel-bg); cursor: pointer; color: var(--unsel-text);
+  background: #e8e8e8; cursor: pointer; color: #1a1a1a;
   display: flex; align-items: center; justify-content: center; gap: 3px;
   margin-top: 4px; transition: all .15s; font-weight: 600;
   font-family: inherit; width: 100%; white-space: nowrap;
 }
-.term-btn:hover { background: #EBF4FF; color: var(--accent); border-color: var(--accent); }
+.term-btn:hover { background: #d8d8d8; color: #1a1a1a; border-color: #999; }
 
 /* ===== DEL BTN ===== */
 .td-actions { padding-right: 12px !important; padding-left: 8px !important; }
@@ -524,8 +536,8 @@ body.dark .btn-view:hover { background: rgba(111,168,220,.16); }
   cursor: pointer; border: 1.5px solid transparent; transition: all .15s;
 }
 .status-toggle-btn:hover { opacity: .85; }
-.status-toggle-btn.status-agendar { background: #fff3cd; color: #5c4200; border-color: #f0ad00; }
-.status-toggle-btn.status-agendado { background: #a6e8b5; color: #0d3d17; border-color: #2e9e40; }
+.status-toggle-btn.status-agendar { background: #e8e8e8; color: #1a1a1a; border-color: #bbb; }
+.status-toggle-btn.status-agendado { background: #e8e8e8; color: #1a1a1a; border-color: #bbb; }
 
 .vm-edit-toggle-wrap { margin-bottom: 18px; }
 .edit-toggle-btn {
@@ -601,19 +613,50 @@ body.dark .btn-view:hover { background: rgba(111,168,220,.16); }
   .tabs { border-radius: 0; }
   .topbar { font-size: 14px; }
 
-  /* Lista de pedidos: só Data, Nome, Status, Termo e Ações */
-  .tbl-wrap table colgroup col:nth-child(1) { width: 16%; }
-  .tbl-wrap table colgroup col:nth-child(2) { width: 30%; }
-  .tbl-wrap table colgroup col:nth-child(3),
-  .tbl-wrap table colgroup col:nth-child(4),
-  .tbl-wrap table colgroup col:nth-child(7) { display: none; }
-  .tbl-wrap table colgroup col:nth-child(5) { width: 20%; }
-  .tbl-wrap table colgroup col:nth-child(6) { width: 22%; }
-  .tbl-wrap table colgroup col:nth-child(8) { width: 12%; }
+  /* Pedidos / Agendados (com checkbox): só Data, Nome, Status, Termo e Ações */
+  #sec-lista .tbl-wrap table colgroup col:nth-child(1),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(1) { display: none; }
+  #sec-lista .tbl-wrap table colgroup col:nth-child(2),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(2) { width: 16%; }
+  #sec-lista .tbl-wrap table colgroup col:nth-child(3),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(3) { width: 30%; }
+  #sec-lista .tbl-wrap table colgroup col:nth-child(4),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(4),
+  #sec-lista .tbl-wrap table colgroup col:nth-child(5),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(5),
+  #sec-lista .tbl-wrap table colgroup col:nth-child(8),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(8) { display: none; }
+  #sec-lista .tbl-wrap table colgroup col:nth-child(6),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(6) { width: 20%; }
+  #sec-lista .tbl-wrap table colgroup col:nth-child(7),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(7) { width: 22%; }
+  #sec-lista .tbl-wrap table colgroup col:nth-child(9),
+  #sec-agendados .tbl-wrap table colgroup col:nth-child(9) { width: 12%; }
 
-  .tbl-wrap table th:nth-child(3), .tbl-wrap table td:nth-child(3),
-  .tbl-wrap table th:nth-child(4), .tbl-wrap table td:nth-child(4),
-  .tbl-wrap table th:nth-child(7), .tbl-wrap table td:nth-child(7) {
+  #sec-lista .tbl-wrap table th:nth-child(1), #sec-lista .tbl-wrap table td:nth-child(1),
+  #sec-agendados .tbl-wrap table th:nth-child(1), #sec-agendados .tbl-wrap table td:nth-child(1),
+  #sec-lista .tbl-wrap table th:nth-child(4), #sec-lista .tbl-wrap table td:nth-child(4),
+  #sec-agendados .tbl-wrap table th:nth-child(4), #sec-agendados .tbl-wrap table td:nth-child(4),
+  #sec-lista .tbl-wrap table th:nth-child(5), #sec-lista .tbl-wrap table td:nth-child(5),
+  #sec-agendados .tbl-wrap table th:nth-child(5), #sec-agendados .tbl-wrap table td:nth-child(5),
+  #sec-lista .tbl-wrap table th:nth-child(8), #sec-lista .tbl-wrap table td:nth-child(8),
+  #sec-agendados .tbl-wrap table th:nth-child(8), #sec-agendados .tbl-wrap table td:nth-child(8) {
+    display: none;
+  }
+
+  /* Arquivados (sem checkbox): só Data, Nome, Status, Termo e Ações */
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(1) { width: 16%; }
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(2) { width: 30%; }
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(3),
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(4),
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(7) { display: none; }
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(5) { width: 20%; }
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(6) { width: 22%; }
+  #sec-arquivados .tbl-wrap table colgroup col:nth-child(8) { width: 12%; }
+
+  #sec-arquivados .tbl-wrap table th:nth-child(3), #sec-arquivados .tbl-wrap table td:nth-child(3),
+  #sec-arquivados .tbl-wrap table th:nth-child(4), #sec-arquivados .tbl-wrap table td:nth-child(4),
+  #sec-arquivados .tbl-wrap table th:nth-child(7), #sec-arquivados .tbl-wrap table td:nth-child(7) {
     display: none;
   }
 }

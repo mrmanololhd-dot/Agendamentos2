@@ -110,15 +110,16 @@ function toggleTema() {
 
 // ===== TABS =====
 function switchTab(t) {
-  const idxMap = { novo: 0, lista: 1, agendados: 2 };
+  const idxMap = { novo: 0, lista: 1, agendados: 2, arquivados: 3 };
   document.querySelectorAll('.tab').forEach((el, i) =>
     el.classList.toggle('active', i === idxMap[t])
   );
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   document.getElementById('sec-' + t).classList.add('active');
-  document.getElementById('main-container').classList.toggle('full-width', t === 'lista' || t === 'agendados');
+  document.getElementById('main-container').classList.toggle('full-width', t === 'lista' || t === 'agendados' || t === 'arquivados');
   if (t === 'lista') render();
   if (t === 'agendados') renderAgendados();
+  if (t === 'arquivados') renderArquivados();
 }
 
 // ===== KIT & PAGAMENTO =====
@@ -309,6 +310,7 @@ function salvar() {
   stats();
   render();
   renderAgendados();
+  renderArquivados();
   clearForm();
   showToast('✅ Pedido salvo com sucesso!');
 }
@@ -336,6 +338,7 @@ function render() {
 
   const list = pedidos.filter(p => {
     if (p.status === 'agendado') return false; // esses vivem na aba Agendados
+    if (p.arquivado) return false; // esses vivem na aba Arquivados
     const mn = !fn || p.nome.toLowerCase().includes(fn) || (p.cpf || '').includes(fn);
     const mk = !fk || p.kit === fk;
     const mt = !ft || (p.termo || 'pendente') === ft;
@@ -351,7 +354,7 @@ function render() {
     return;
   }
   empty.style.display = 'none';
-  tbody.innerHTML = list.map(pedidoRowHtml).join('');
+  tbody.innerHTML = list.map(p => pedidoRowHtml(p, true)).join('');
 }
 
 function renderAgendados() {
@@ -361,6 +364,7 @@ function renderAgendados() {
 
   const list = pedidos.filter(p => {
     if (p.status !== 'agendado') return false; // só os já agendados
+    if (p.arquivado) return false; // esses vivem na aba Arquivados
     const mn = !fn || p.nome.toLowerCase().includes(fn) || (p.cpf || '').includes(fn);
     const mk = !fk || p.kit === fk;
     const mt = !ft || (p.termo || 'pendente') === ft;
@@ -376,10 +380,35 @@ function renderAgendados() {
     return;
   }
   empty.style.display = 'none';
-  tbody.innerHTML = list.map(pedidoRowHtml).join('');
+  tbody.innerHTML = list.map(p => pedidoRowHtml(p, true)).join('');
 }
 
-function pedidoRowHtml(p) {
+function renderArquivados() {
+  const fn = (document.getElementById('fil-nome-arq').value || '').toLowerCase();
+  const fk = document.getElementById('fil-kit-arq').value;
+  const ft = document.getElementById('fil-termo-arq').value;
+
+  const list = pedidos.filter(p => {
+    if (!p.arquivado) return false;
+    const mn = !fn || p.nome.toLowerCase().includes(fn) || (p.cpf || '').includes(fn);
+    const mk = !fk || p.kit === fk;
+    const mt = !ft || (p.termo || 'pendente') === ft;
+    return mn && mk && mt;
+  });
+
+  const tbody = document.getElementById('tbody-arq');
+  const empty = document.getElementById('empty-msg-arq');
+
+  if (!list.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(p => pedidoRowHtml(p, false)).join('');
+}
+
+function pedidoRowHtml(p, comCheckbox) {
   const termo = p.termo || 'pendente';
   const pillClass = termo === 'confirmado' ? 'pill-conf' : 'pill-pend';
   const pillLabel = termo === 'confirmado' ? '✅ Confirmado' : '⏳ Pendente';
@@ -388,6 +417,7 @@ function pedidoRowHtml(p) {
   const statusClass = statusCssClass(p);
 
   return `<tr>
+${comCheckbox ? `<td><input type="checkbox" class="row-check" value="${p.id}"></td>` : ''}
 <td><input class="td-edit ${dataClass}" type="date" value="${esc(p.data)}" onchange="updData(${p.id},this)"></td>
 <td><input class="td-edit" value="${esc(p.nome)}" onchange="updNome(${p.id},this)"></td>
 <td><input class="td-edit" value="${esc(p.tel)}" onchange="updTel(${p.id},this)"></td>
@@ -429,6 +459,33 @@ function pedidoRowHtml(p) {
 </tr>`;
 }
 
+// ===== SELEÇÃO E ARQUIVAMENTO =====
+function toggleSelecionarTodos(el, origem) {
+  const tbodyId = origem === 'lista' ? 'tbody' : 'tbody-ag';
+  document.querySelectorAll('#' + tbodyId + ' .row-check').forEach(c => { c.checked = el.checked; });
+}
+
+function arquivarSelecionados(origem) {
+  const tbodyId = origem === 'lista' ? 'tbody' : 'tbody-ag';
+  const marcados = document.querySelectorAll('#' + tbodyId + ' .row-check:checked');
+  if (!marcados.length) {
+    showToast('Selecione ao menos um pedido pra arquivar.', 'error');
+    return;
+  }
+  const ids = Array.from(marcados).map(c => Number(c.value));
+  ids.forEach(id => {
+    const p = pedidos.find(x => x.id === id);
+    if (p) p.arquivado = true;
+  });
+  saveData();
+  badge();
+  stats();
+  render();
+  renderAgendados();
+  renderArquivados();
+  showToast(`📦 ${ids.length} pedido(s) arquivado(s).`);
+}
+
 // ===== DATA / STATUS HELPERS =====
 function todayStr() {
   const d = new Date();
@@ -441,16 +498,11 @@ function todayStr() {
 function dataCssClass(dataVal) {
   if (!dataVal) return '';
   const hoje = todayStr();
-  if (dataVal > hoje) return 'data-futura';
-  if (dataVal < hoje) return 'data-passada';
-  return 'data-chegou';
+  return dataVal > hoje ? 'data-futura' : 'data-verde';
 }
 
 function statusCssClass(p) {
-  if (p.status === 'agendado') return 'status-agendado';
-  const hoje = todayStr();
-  if (p.data && p.data > hoje) return 'status-aguardando';
-  return 'status-agendar';
+  return p.status === 'agendado' ? 'status-verde' : 'status-cinza';
 }
 
 function updData(id, input) {
@@ -572,6 +624,7 @@ function updStatus(id, sel) {
   badge();
   render();
   renderAgendados();
+  renderArquivados();
 }
 
 // ===== TOGGLE TERMO =====
@@ -583,6 +636,7 @@ function toggleTermo(id) {
   stats();
   render();
   renderAgendados();
+  renderArquivados();
   showToast(p.termo === 'confirmado' ? '✅ Termo confirmado!' : 'Termo marcado como pendente.');
 }
 
@@ -862,6 +916,7 @@ function vmSalvar(field, val) {
   stats();
   render();
   renderAgendados();
+  renderArquivados();
 }
 
 function vmSalvarNome(input) { input.value = capitalizeNome(input.value); vmSalvar('nome', input.value); }
@@ -881,6 +936,7 @@ function vmSalvarPreco() {
   stats();
   render();
   renderAgendados();
+  renderArquivados();
 }
 
 function vmSelDur(val) {
@@ -910,6 +966,7 @@ function aplicarKitModal(dur, tipo) {
   stats();
   render();
   renderAgendados();
+  renderArquivados();
   renderModalBody();
 }
 
@@ -921,6 +978,7 @@ function vmSelPag(val) {
   stats();
   render();
   renderAgendados();
+  renderArquivados();
   renderModalBody();
 }
 
@@ -933,6 +991,7 @@ function vmToggleStatus() {
   badge();
   render();
   renderAgendados();
+  renderArquivados();
   renderModalBody();
 }
 
@@ -1005,7 +1064,7 @@ function closeConf() { delId = null; document.getElementById('conf-overlay').cla
 function confirmDel() {
   if (delId) {
     pedidos = pedidos.filter(p => p.id !== delId);
-    saveData(); badge(); stats(); render(); renderAgendados();
+    saveData(); badge(); stats(); render(); renderAgendados(); renderArquivados();
     showToast('Pedido excluído.');
   }
   closeConf();
@@ -1013,8 +1072,9 @@ function confirmDel() {
 
 // ===== CONTADORES =====
 function badge() {
-  document.getElementById('count-badge').textContent = pedidos.filter(p => p.status !== 'agendado').length;
-  document.getElementById('count-badge-ag').textContent = pedidos.filter(p => p.status === 'agendado').length;
+  document.getElementById('count-badge').textContent = pedidos.filter(p => p.status !== 'agendado' && !p.arquivado).length;
+  document.getElementById('count-badge-ag').textContent = pedidos.filter(p => p.status === 'agendado' && !p.arquivado).length;
+  document.getElementById('count-badge-arq').textContent = pedidos.filter(p => p.arquivado).length;
 }
 function stats() {
   document.getElementById('st-total').textContent = pedidos.length;
