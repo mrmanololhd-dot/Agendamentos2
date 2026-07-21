@@ -715,7 +715,7 @@ function renderModalBody() {
 
   const [dur, tipo] = (p.kit || '3m_normal').split('_');
   const k = KITS[p.kit] || { nome: '—', frascos: '—' };
-  const avistaNum = parseValorBR(p.precoAvista);
+  const avistaNum = parseValorBR(p.precoAvista || k.avista);
   const parcAtual = parseInt((p.precoParc || '').match(/^\d+/)?.[0] || '12', 10);
   const termo = p.termo || 'pendente';
 
@@ -759,8 +759,8 @@ function renderModalBody() {
       <div class="view-section">
         <div class="view-section-title">💊 Kit e pagamento</div>
         ${vmRow('Kit', k.nome + ' (' + k.frascos + ' frascos)')}
-        ${vmRow('Valor à vista', p.precoAvista)}
-        ${vmRow('Parcelado', p.precoParc)}
+        ${vmRow('Valor à vista', p.precoAvista || k.avista)}
+        ${vmRow('Parcelado', p.precoParc || k.parc)}
         ${vmRow('Forma de pagamento', fmtPagamento(p.pagamento))}
       </div>
       <div class="view-section">

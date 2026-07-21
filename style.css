@@ -366,10 +366,10 @@ tr:hover td { background: var(--hover-bg); }
 }
 body.dark .td-edit { color-scheme: dark !important; }
 .td-edit:focus { border-color: var(--input-border); background: var(--input-bg) !important; outline: none; }
-.data-futura { background: #f7c1c1 !important; color: #a32d2d !important; font-weight: 700 !important; border-color: #e24b4a !important; }
+.data-futura { background: #ef9494 !important; color: #7a1414 !important; font-weight: 700 !important; border-color: #d62d2d !important; }
 .data-chegou { background: #9edb7a !important; color: #14531b !important; font-weight: 700 !important; border-color: #3d8b1e !important; }
 .data-passada { background: #fff3cd !important; color: #5c4200 !important; font-weight: 700 !important; border-color: #f0ad00 !important; }
-.status-aguardando { background: #fdecea !important; color: #a32d2d !important; border-color: #e24b4a !important; }
+.status-aguardando { background: #ef9494 !important; color: #7a1414 !important; border-color: #d62d2d !important; }
 
 /* ===== ENDEREÇO — MODO EXIBIÇÃO (texto formatado) ===== */
 .addr-display {
