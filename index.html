@@ -19,6 +19,7 @@
     <div class="tab active" onclick="switchTab('novo')">＋ Novo pedido</div>
     <div class="tab" onclick="switchTab('lista')">☰ Pedidos <span id="count-badge" class="badge-count">0</span></div>
     <div class="tab" onclick="switchTab('agendados')">✅ Agendados <span id="count-badge-ag" class="badge-count">0</span></div>
+    <div class="tab" onclick="switchTab('arquivados')">🗄️ Arquivados <span id="count-badge-arq" class="badge-count">0</span></div>
   </div>
 
   <!-- NOVO PEDIDO -->
@@ -143,20 +144,23 @@
         <option value="confirmado">Confirmado</option>
         <option value="pendente">Pendente</option>
       </select>
+      <button class="btn-arquivar" onclick="arquivarSelecionados('lista')">📦 Arquivar selecionados</button>
     </div>
     <div class="tbl-wrap">
       <table>
         <colgroup>
+          <col style="width:4%">
+          <col style="width:11%">
+          <col style="width:12%">
           <col style="width:12%">
           <col style="width:13%">
-          <col style="width:13%">
-          <col style="width:14%">
           <col style="width:8%">
           <col style="width:10%">
           <col style="width:24%">
           <col style="width:6%">
         </colgroup>
         <thead><tr>
+          <th><input type="checkbox" onclick="toggleSelecionarTodos(this,'lista')" title="Selecionar todos"></th>
           <th>Data</th><th>Nome</th><th>Telefone</th>
           <th>Kit</th>
           <th>Status</th><th>Termo</th><th>Informações</th><th></th>
@@ -187,6 +191,53 @@
         <option value="confirmado">Confirmado</option>
         <option value="pendente">Pendente</option>
       </select>
+      <button class="btn-arquivar" onclick="arquivarSelecionados('agendados')">📦 Arquivar selecionados</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <colgroup>
+          <col style="width:4%">
+          <col style="width:11%">
+          <col style="width:12%">
+          <col style="width:12%">
+          <col style="width:13%">
+          <col style="width:8%">
+          <col style="width:10%">
+          <col style="width:24%">
+          <col style="width:6%">
+        </colgroup>
+        <thead><tr>
+          <th><input type="checkbox" onclick="toggleSelecionarTodos(this,'agendados')" title="Selecionar todos"></th>
+          <th>Data</th><th>Nome</th><th>Telefone</th>
+          <th>Kit</th>
+          <th>Status</th><th>Termo</th><th>Informações</th><th></th>
+        </tr></thead>
+        <tbody id="tbody-ag"></tbody>
+      </table>
+      <div id="empty-msg-ag" class="empty">📭 Nenhum pedido agendado ainda</div>
+    </div>
+  </div>
+
+  <!-- ARQUIVADOS -->
+  <div id="sec-arquivados" class="section">
+    <div class="filter-bar">
+      <input type="text" id="fil-nome-arq" placeholder="🔍 Buscar nome ou CPF..." oninput="renderArquivados()">
+      <select id="fil-kit-arq" onchange="renderArquivados()">
+        <option value="">Todos os kits</option>
+        <option value="3m_normal">3 meses – Normal</option>
+        <option value="5m_normal">5 meses – Normal</option>
+        <option value="7m_normal">7 meses – Normal</option>
+        <option value="ultra_normal">Ultra – Normal</option>
+        <option value="3m_desc">3 meses – Desconto</option>
+        <option value="5m_desc">5 meses – Desconto</option>
+        <option value="7m_desc">7 meses – Desconto</option>
+        <option value="ultra_desc">Ultra – Desconto</option>
+      </select>
+      <select id="fil-termo-arq" onchange="renderArquivados()">
+        <option value="">Todos os termos</option>
+        <option value="confirmado">Confirmado</option>
+        <option value="pendente">Pendente</option>
+      </select>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -205,9 +256,9 @@
           <th>Kit</th>
           <th>Status</th><th>Termo</th><th>Informações</th><th></th>
         </tr></thead>
-        <tbody id="tbody-ag"></tbody>
+        <tbody id="tbody-arq"></tbody>
       </table>
-      <div id="empty-msg-ag" class="empty">📭 Nenhum pedido agendado ainda</div>
+      <div id="empty-msg-arq" class="empty">📭 Nenhum pedido arquivado</div>
     </div>
   </div>
 </div>
