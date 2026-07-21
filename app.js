@@ -782,7 +782,7 @@ function renderModalBody() {
       <div class="form-group"><label>Nome completo</label><input type="text" id="vm-nome" value="${esc(p.nome)}" onchange="vmSalvarNome(this)"></div>
       <div class="vm-2col">
         <div class="form-group"><label>CPF</label><input type="text" id="vm-cpf" value="${esc(p.cpf)}" maxlength="14" onchange="vmSalvarCPF(this)"></div>
-        <div class="form-group"><label>Telefone</label><input type="text" id="vm-tel" value="${esc(p.tel)}" maxlength="15" onchange="vmSalvarTel(this)"></div>
+        <div class="form-group"><label>Telefone</label><input type="text" id="vm-tel" value="${esc(p.tel)}" maxlength="11" onchange="vmSalvarTel(this)"></div>
       </div>
       <div class="form-group"><label>E-mail</label><input type="email" id="vm-email" value="${esc(p.email||'')}" onchange="vmSalvarEmail(this)"></div>
     </div>
@@ -1063,10 +1063,7 @@ function fmtCPF(v) {
   return v.slice(0, 14);
 }
 function fmtTel(v) {
-  v = v.replace(/\D/g, '');
-  if (v.length > 2)  v = '(' + v.slice(0,2) + ') ' + v.slice(2);
-  if (v.length > 10) v = v.slice(0,10) + '-' + v.slice(10);
-  return v.slice(0, 15);
+  return v.replace(/\D/g, '').slice(0, 11);
 }
 function fmtCEP(v) {
   v = v.replace(/\D/g, '');

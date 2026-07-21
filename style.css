@@ -171,7 +171,7 @@ input, select, textarea {
 }
 input::placeholder, textarea::placeholder { color: var(--text-muted) !important; opacity: 1; }
 input[type="date"] { color-scheme: light; }
-body.dark input[type="date"] { color-scheme: dark; }
+body.dark input[type="date"] { color-scheme: dark !important; }
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: #185FA5;
@@ -364,11 +364,11 @@ tr:hover td { background: var(--hover-bg); }
   transition: border-color .15s, background .15s;
   color-scheme: light;
 }
-body.dark .td-edit { color-scheme: dark; }
+body.dark .td-edit { color-scheme: dark !important; }
 .td-edit:focus { border-color: var(--input-border); background: var(--input-bg) !important; outline: none; }
-.data-futura { background: #f7c1c1 !important; color: #1a1a1a !important; font-weight: 700 !important; border-color: #e24b4a !important; }
-.data-chegou { background: #fff3cd !important; color: #856404 !important; font-weight: 700 !important; border-color: #f0ad00 !important; }
-.data-passada { background: #c0dd97 !important; color: #1a1a1a !important; font-weight: 700 !important; border-color: #639922 !important; }
+.data-futura { background: #f7c1c1 !important; color: #a32d2d !important; font-weight: 700 !important; border-color: #e24b4a !important; }
+.data-chegou { background: #9edb7a !important; color: #14531b !important; font-weight: 700 !important; border-color: #3d8b1e !important; }
+.data-passada { background: #fff3cd !important; color: #5c4200 !important; font-weight: 700 !important; border-color: #f0ad00 !important; }
 .status-aguardando { background: #fdecea !important; color: #a32d2d !important; border-color: #e24b4a !important; }
 
 /* ===== ENDEREÇO — MODO EXIBIÇÃO (texto formatado) ===== */
@@ -423,8 +423,8 @@ body.dark .td-edit { color-scheme: dark; }
 .kit-sel-td:focus { outline: none; border-color: #0C447C; }
 
 /* Status colorido */
-.status-agendar { background: #fff3cd !important; color: #856404 !important; border-color: #f0ad00 !important; }
-.status-agendado { background: #d4edda !important; color: #155724 !important; border-color: #28a745 !important; }
+.status-agendar { background: #fff3cd !important; color: #5c4200 !important; border-color: #f0ad00 !important; }
+.status-agendado { background: #a6e8b5 !important; color: #0d3d17 !important; border-color: #2e9e40 !important; }
 .info-ta {
   font-size: 11px; font-weight: 500;
   border: 1.5px solid #185FA5;
@@ -448,8 +448,8 @@ body.dark .info-ta:focus { background: var(--input-bg); }
   width: 100%; justify-content: center;
 }
 .pill:hover { opacity: .85; transform: scale(.97); }
-.pill-conf { background: #d4edda; color: #155724; }
-.pill-pend { background: #fff3cd; color: #856404; }
+.pill-conf { background: #a6e8b5; color: #0d3d17; }
+.pill-pend { background: #fff3cd; color: #5c4200; }
 
 .term-btn {
   font-size: 9.5px; border: 1px solid var(--input-border);
@@ -524,8 +524,8 @@ body.dark .btn-view:hover { background: rgba(111,168,220,.16); }
   cursor: pointer; border: 1.5px solid transparent; transition: all .15s;
 }
 .status-toggle-btn:hover { opacity: .85; }
-.status-toggle-btn.status-agendar { background: #fff3cd; color: #856404; border-color: #f0ad00; }
-.status-toggle-btn.status-agendado { background: #d4edda; color: #155724; border-color: #28a745; }
+.status-toggle-btn.status-agendar { background: #fff3cd; color: #5c4200; border-color: #f0ad00; }
+.status-toggle-btn.status-agendado { background: #a6e8b5; color: #0d3d17; border-color: #2e9e40; }
 
 .vm-edit-toggle-wrap { margin-bottom: 18px; }
 .edit-toggle-btn {
