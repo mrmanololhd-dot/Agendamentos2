@@ -378,7 +378,8 @@ tr:hover td { background: var(--hover-bg); }
 body.dark .td-edit { color-scheme: dark !important; }
 .td-edit:focus { border-color: var(--input-border); background: var(--input-bg) !important; outline: none; }
 .data-futura { background: #ef9494 !important; color: #7a1414 !important; font-weight: 700 !important; border-color: #d62d2d !important; }
-.data-verde { background: #9edb7a !important; color: #14531b !important; font-weight: 700 !important; border-color: #3d8b1e !important; }
+.data-chegou { background: #f5d76e !important; color: #5c4200 !important; font-weight: 700 !important; border-color: #d4a017 !important; }
+.data-passada { background: #9edb7a !important; color: #14531b !important; font-weight: 700 !important; border-color: #3d8b1e !important; }
 .status-vermelho { background: #ef9494 !important; color: #7a1414 !important; border-color: #d62d2d !important; }
 .status-verde { background: #9edb7a !important; color: #14531b !important; border-color: #3d8b1e !important; }
 .status-cinza { background: #e8e8e8 !important; color: #1a1a1a !important; border-color: #bbb !important; }

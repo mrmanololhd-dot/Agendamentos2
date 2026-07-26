@@ -498,7 +498,9 @@ function todayStr() {
 function dataCssClass(dataVal) {
   if (!dataVal) return '';
   const hoje = todayStr();
-  return dataVal > hoje ? 'data-futura' : 'data-verde';
+  if (dataVal > hoje) return 'data-futura';
+  if (dataVal < hoje) return 'data-passada';
+  return 'data-chegou';
 }
 
 function statusCssClass(p) {
@@ -738,6 +740,32 @@ function vmToggleEdit() {
   renderModalBody();
 }
 
+function enderecoCompletoTexto(p) {
+  let linha1 = (p.rua || '') + (p.num ? ', ' + p.num : '');
+  if (p.comp) linha1 += ' - ' + p.comp;
+  const linha2 = [p.bairro, p.cidade && p.uf ? p.cidade + ' - ' + p.uf : p.cidade].filter(Boolean).join(' • ');
+  const linha3 = p.cep ? 'CEP ' + p.cep : '';
+  return [linha1, linha2, linha3].filter(Boolean).join('\n');
+}
+
+function copiarEnderecoCompleto(id) {
+  const p = pedidos.find(x => x.id === id);
+  if (!p) return;
+  const texto = enderecoCompletoTexto(p);
+  if (!texto.trim()) { showToast('Endereço vazio.', 'error'); return; }
+  navigator.clipboard.writeText(texto)
+    .then(() => showToast('📋 Endereço copiado!'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('📋 Endereço copiado!');
+    });
+}
+
 function vmCopiarClique(el) {
   const val = el.getAttribute('data-copy');
   const label = el.getAttribute('data-label');
@@ -809,6 +837,7 @@ function renderModalBody() {
         ${vmRow('Bairro', p.bairro)}
         ${vmRow('Cidade', p.cidade)}
         ${vmRow('UF', p.uf)}
+        <button class="term-btn" onclick="copiarEnderecoCompleto(${p.id})">📋 Copiar endereço completo</button>
       </div>
       <div class="view-section">
         <div class="view-section-title">💊 Kit e pagamento</div>
@@ -860,6 +889,7 @@ function renderModalBody() {
         <div class="form-group"><label>Cidade</label><input type="text" id="vm-cidade" value="${esc(p.cidade)}" oninput="formatarPalavras(this)" onchange="vmSalvar('cidade',this.value)"></div>
       </div>
       <div class="form-group status-group"><label>UF</label><input type="text" id="vm-uf" value="${esc(p.uf)}" maxlength="2" onchange="vmSalvar('uf',this.value.toUpperCase())"></div>
+      <button class="term-btn" onclick="copiarEnderecoCompleto(${p.id})">📋 Copiar endereço completo</button>
     </div>
 
     <div class="view-section">
