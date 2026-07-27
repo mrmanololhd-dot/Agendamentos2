@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-cpf').addEventListener('input', function () {
     this.value = fmtCPF(this.value);
   });
+  document.getElementById('f-cpf').addEventListener('change', function () {
+    validarCPFCampo(this);
+  });
   document.getElementById('f-tel').addEventListener('input', function () {
     this.value = fmtTel(this.value);
   });
@@ -956,7 +959,7 @@ function vmSalvar(field, val) {
 }
 
 function vmSalvarNome(input) { input.value = capitalizeNome(input.value); vmSalvar('nome', input.value); }
-function vmSalvarCPF(input)  { input.value = fmtCPF(input.value); vmSalvar('cpf', input.value); }
+function vmSalvarCPF(input)  { input.value = fmtCPF(input.value); vmSalvar('cpf', input.value); validarCPFCampo(input); }
 function vmSalvarTel(input)  { input.value = fmtTel(input.value); vmSalvar('tel', input.value); }
 function vmSalvarEmail(input){ input.value = input.value.toLowerCase(); vmSalvar('email', input.value); }
 
@@ -1157,6 +1160,40 @@ function fmtCPF(v) {
   if (v.length > 7)  v = v.slice(0,7)  + '.' + v.slice(7);
   if (v.length > 11) v = v.slice(0,11) + '-' + v.slice(11);
   return v.slice(0, 14);
+}
+
+// Valida o CPF pelo algoritmo oficial dos dois dígitos verificadores.
+function cpfValido(cpf) {
+  const digits = (cpf || '').replace(/\D/g, '');
+  if (digits.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(digits)) return false; // 000.000.000-00, 111.111.111-11 etc.
+
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += parseInt(digits[i], 10) * (10 - i);
+  let resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(digits[9], 10)) return false;
+
+  soma = 0;
+  for (let i = 0; i < 10; i++) soma += parseInt(digits[i], 10) * (11 - i);
+  resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(digits[10], 10)) return false;
+
+  return true;
+}
+
+// Marca visualmente o campo e avisa se o CPF digitado não for válido.
+// Campo vazio não é considerado erro (CPF opcional).
+function validarCPFCampo(input) {
+  const digits = input.value.replace(/\D/g, '');
+  if (!digits) { input.classList.remove('campo-invalido'); return; }
+  if (cpfValido(input.value)) {
+    input.classList.remove('campo-invalido');
+  } else {
+    input.classList.add('campo-invalido');
+    showToast('⚠️ CPF inválido — confira os números.', 'error');
+  }
 }
 function fmtTel(v) {
   return v.replace(/\D/g, '').slice(0, 11);

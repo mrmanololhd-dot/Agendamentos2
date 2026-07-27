@@ -179,6 +179,11 @@ input:focus, select:focus, textarea:focus {
 }
 textarea { resize: vertical; min-height: 72px; }
 
+.campo-invalido {
+  border-color: #d62d2d !important;
+  box-shadow: 0 0 0 3px rgba(214,45,45,.12) !important;
+}
+
 /* ===== CEP ===== */
 .cep-row { display: flex; gap: 8px; align-items: stretch; }
 .cep-row input { flex: 1; }
