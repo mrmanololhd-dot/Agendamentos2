@@ -280,10 +280,12 @@ function salvar() {
   const valorAvista = parseValorBR(document.getElementById('f-valor-avista').value);
   const parcN = parseInt(document.getElementById('f-parcelamento').value || '12', 10);
   const parcelaEscolhida = calcParcelas(valorAvista).find(p => p.n === parcN) || { n: 12, valor: valorAvista };
+  const dataEscolhida = document.getElementById('f-data').value;
 
   const p = {
     id: Date.now(),
-    data:    document.getElementById('f-data').value,
+    data:    dataEscolhida,
+    dataEraFutura: dataEscolhida > todayStr(),
     nome,
     cpf:     document.getElementById('f-cpf').value,
     tel:     document.getElementById('f-tel').value,
@@ -413,7 +415,7 @@ function pedidoRowHtml(p, comCheckbox) {
   const pillClass = termo === 'confirmado' ? 'pill-conf' : 'pill-pend';
   const pillLabel = termo === 'confirmado' ? '✅ Confirmado' : '⏳ Pendente';
 
-  const dataClass = dataCssClass(p.data);
+  const dataClass = dataCssClass(p.data, p.dataEraFutura);
   const statusClass = statusCssClass(p);
 
   return `<tr>
@@ -495,12 +497,13 @@ function todayStr() {
   return `${y}-${m}-${day}`;
 }
 
-function dataCssClass(dataVal) {
+function dataCssClass(dataVal, eraFutura) {
   if (!dataVal) return '';
   const hoje = todayStr();
   if (dataVal > hoje) return 'data-futura';
   if (dataVal < hoje) return 'data-passada';
-  return 'data-chegou';
+  // dataVal === hoje: verde se foi agendado direto pra hoje, amarelo se estava no futuro e o dia chegou
+  return eraFutura ? 'data-chegou' : 'data-passada';
 }
 
 function statusCssClass(p) {
@@ -508,11 +511,13 @@ function statusCssClass(p) {
 }
 
 function updData(id, input) {
-  input.className = 'td-edit ' + dataCssClass(input.value);
+  const hoje = todayStr();
+  const p = pedidos.find(x => x.id === id);
+  if (p) p.dataEraFutura = input.value > hoje;
+  input.className = 'td-edit ' + dataCssClass(input.value, p ? p.dataEraFutura : false);
   upd(id, 'data', input.value);
   const sel = input.closest('tr').querySelector('.td-sel');
   if (sel) {
-    const p = pedidos.find(x => x.id === id);
     sel.className = 'td-sel ' + statusCssClass(p);
   }
 }
@@ -942,6 +947,7 @@ function vmSalvar(field, val) {
   const p = pedidoAtualView();
   if (!p) return;
   p[field] = val;
+  if (field === 'data') p.dataEraFutura = val > todayStr();
   saveData();
   stats();
   render();
