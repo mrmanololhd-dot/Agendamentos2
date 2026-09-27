@@ -2,20 +2,48 @@
 const SK = 'pedidos-calmidrol-v4';
 let pedidos = [];
 let delId = null;
+let selProdVal = 'calmidrol';
 let selDurVal = '3m';
 let selTipoVal = 'normal';
 let selPagVal = 'ambos';
 
 const KITS = {
-  '3m_normal':   { nome: 'Protocolo Inicial – 3 meses',   frascos: 3,  avista: 'R$ 329,00', parc: '12x de R$ 34,03' },
-  '5m_normal':   { nome: 'Protocolo Médio – 5 meses',     frascos: 5,  avista: 'R$ 379,00', parc: '12x de R$ 39,20' },
-  '7m_normal':   { nome: 'Protocolo Completo – 7 meses',  frascos: 7,  avista: 'R$ 449,00', parc: '12x de R$ 46,44' },
-  'ultra_normal':{ nome: 'Protocolo Ultra – 10 meses',    frascos: 10, avista: 'R$ 539,00', parc: '12x de R$ 55,75' },
-  '3m_desc':     { nome: 'Protocolo Inicial – 3 meses',   frascos: 3,  avista: 'R$ 309,02', parc: '12x de R$ 31,96' },
-  '5m_desc':     { nome: 'Protocolo Médio – 5 meses',     frascos: 5,  avista: 'R$ 359,00', parc: '12x de R$ 37,13' },
-  '7m_desc':     { nome: 'Protocolo Completo – 7 meses',  frascos: 7,  avista: 'R$ 429,00', parc: '12x de R$ 44,37' },
-  'ultra_desc':  { nome: 'Protocolo Ultra – 10 meses',    frascos: 10, avista: 'R$ 519,00', parc: '12x de R$ 53,68' },
+  '3m_normal':   { produto: 'calmidrol', nome: 'Protocolo Inicial – 3 meses',   frascos: 3,  avista: 'R$ 329,00', parc: '12x de R$ 34,03' },
+  '5m_normal':   { produto: 'calmidrol', nome: 'Protocolo Médio – 5 meses',     frascos: 5,  avista: 'R$ 379,00', parc: '12x de R$ 39,20' },
+  '7m_normal':   { produto: 'calmidrol', nome: 'Protocolo Completo – 7 meses',  frascos: 7,  avista: 'R$ 449,00', parc: '12x de R$ 46,44' },
+  'ultra_normal':{ produto: 'calmidrol', nome: 'Protocolo Ultra – 10 meses',    frascos: 10, avista: 'R$ 539,00', parc: '12x de R$ 55,75' },
+  '3m_desc':     { produto: 'calmidrol', nome: 'Protocolo Inicial – 3 meses',   frascos: 3,  avista: 'R$ 309,02', parc: '12x de R$ 31,96' },
+  '5m_desc':     { produto: 'calmidrol', nome: 'Protocolo Médio – 5 meses',     frascos: 5,  avista: 'R$ 359,00', parc: '12x de R$ 37,13' },
+  '7m_desc':     { produto: 'calmidrol', nome: 'Protocolo Completo – 7 meses',  frascos: 7,  avista: 'R$ 429,00', parc: '12x de R$ 44,37' },
+  'ultra_desc':  { produto: 'calmidrol', nome: 'Protocolo Ultra – 10 meses',    frascos: 10, avista: 'R$ 519,00', parc: '12x de R$ 53,68' },
+  'f2m_normal':  { produto: 'famevity',  nome: 'Tratamento Famevity 2 meses',          avista: 'R$ 247,00', parc: '12x de R$ 25,55' },
+  'f4m_normal':  { produto: 'famevity',  nome: 'Tratamento Famevity 4 meses',          avista: 'R$ 447,00', parc: '12x de R$ 46,23' },
+  'f8m_normal':  { produto: 'famevity',  nome: 'Tratamento Completo Famevity 8 meses', avista: 'R$ 647,00', parc: '12x de R$ 66,91' },
 };
+
+// Durações disponíveis em cada produto. Famevity não tem preço com desconto.
+const PRODUTOS = {
+  calmidrol: { label: 'Kit Calmidrol', temDesconto: true,
+    durs: [['3m', '3 meses'], ['5m', '5 meses'], ['7m', '7 meses'], ['ultra', 'ULTRA']] },
+  famevity:  { label: 'Kit Famevity', temDesconto: false,
+    durs: [['f2m', '2 meses'], ['f4m', '4 meses'], ['f8m', '8 meses']] },
+};
+
+// Tabelas oficiais de parcelas (valor à vista em centavos -> parcelas de 1x a 12x).
+// Quando o valor à vista bate com uma dessas, usa a tabela em vez do cálculo.
+const TABELAS_PARCELAS = {
+  24700: [247.00, 130.00, 88.15, 67.23, 54.69, 46.34, 40.38, 35.92, 32.45, 29.68, 27.42, 25.55],
+  44700: [447.00, 235.27, 159.52, 121.67, 98.97, 83.86, 73.08, 65.00, 58.73, 53.72, 49.63, 46.23],
+  64700: [647.00, 340.53, 230.89, 176.10, 143.26, 121.38, 105.77, 94.08, 85.01, 77.76, 71.84, 66.91],
+};
+
+function produtoDoKit(kit) {
+  return (KITS[kit] && KITS[kit].produto) || 'calmidrol';
+}
+
+function descricaoKit(k) {
+  return k.frascos ? k.nome + ' (' + k.frascos + ' frascos)' : k.nome;
+}
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -130,9 +158,24 @@ function kitAtualKey() {
   return selDurVal + '_' + selTipoVal;
 }
 
+// Seleciona o primeiro kit do produto (usado ao limpar o formulário)
+function selProduto(prod) {
+  selDur(document.querySelector('#card-' + prod + ' .kit-dur-btn'), PRODUTOS[prod].durs[0][0]);
+}
+
+// Cada produto tem seu card. Ao clicar num botão de duração, aquele card vira o
+// ativo e recebe o bloco de valor/parcelamento/pagamento (#kit-detalhes).
 function selDur(el, val) {
-  document.querySelectorAll('.kit-dur-btn').forEach(b => b.classList.remove('sel'));
+  const prod = produtoDoKit(val + '_normal');
+  if (prod !== selProdVal) {
+    selProdVal = prod;
+    selTipoVal = 'normal';
+    document.querySelectorAll('.kit-tipo-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
+  }
+  document.querySelectorAll('.kit-card .kit-dur-btn').forEach(b => b.classList.remove('sel'));
   el.classList.add('sel');
+  document.querySelectorAll('.kit-card').forEach(c => c.classList.toggle('kit-card-ativo', c.id === 'card-' + prod));
+  document.getElementById('card-' + prod).appendChild(document.getElementById('kit-detalhes'));
   selDurVal = val;
   preencherValoresKit();
 }
@@ -152,7 +195,7 @@ function preencherValoresKit() {
   const avistaNum = parseValorBR(valorNumerico(k.avista));
   document.getElementById('f-valor-avista').value = fmtMoeda(avistaNum);
   popularParcelamento(document.getElementById('f-parcelamento'), avistaNum, 12);
-  document.getElementById('kit-info-line').textContent = '📦 ' + k.frascos + ' frascos — ' + k.nome;
+  document.getElementById('kit-info-line').textContent = '📦 ' + (k.frascos ? k.frascos + ' frascos — ' : '') + k.nome;
 }
 
 // Extrai só o número (ex: "R$ 329,00" -> "329,00"; "12x de R$ 34,03" -> "34,03")
@@ -165,6 +208,8 @@ function valorNumerico(v) {
 const TAXA_PARCELA = 0.0349;
 
 function calcParcelas(pv) {
+  const tabela = TABELAS_PARCELAS[Math.round(pv * 100)];
+  if (tabela) return tabela.map((valor, i) => ({ n: i + 1, valor }));
   const arr = [];
   for (let n = 1; n <= 12; n++) {
     let valor;
@@ -325,11 +370,7 @@ function clearForm() {
     .forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-data').value = todayStr();
   document.getElementById('f-status').value = 'agendar';
-  document.querySelectorAll('.kit-dur-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
-  document.querySelectorAll('.kit-tipo-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
-  selDurVal = '3m';
-  selTipoVal = 'normal';
-  preencherValoresKit();
+  selProduto('calmidrol');
   document.querySelectorAll('.pag-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
   selPagVal = 'ambos';
   esconderConfirmacaoEndereco();
@@ -439,6 +480,11 @@ ${comCheckbox ? `<td><input type="checkbox" class="row-check" value="${p.id}"></
       <option value="5m_desc"    ${p.kit==='5m_desc'?'selected':''}>5 meses – Desconto</option>
       <option value="7m_desc"    ${p.kit==='7m_desc'?'selected':''}>7 meses – Desconto</option>
       <option value="ultra_desc" ${p.kit==='ultra_desc'?'selected':''}>Ultra (10 meses) – Desconto</option>
+    </optgroup>
+    <optgroup label="Famevity">
+      <option value="f2m_normal" ${p.kit==='f2m_normal'?'selected':''}>Famevity 2 meses</option>
+      <option value="f4m_normal" ${p.kit==='f4m_normal'?'selected':''}>Famevity 4 meses</option>
+      <option value="f8m_normal" ${p.kit==='f8m_normal'?'selected':''}>Famevity 8 meses</option>
     </optgroup>
   </select>
 </td>
@@ -665,7 +711,15 @@ function gerarTermo(p) {
   const comp = p.comp ? '\n▸ COMPLEMENTO – ' + p.comp : '';
   const cidade = [p.cidade, p.uf].filter(Boolean).join(' - ');
 
-  return `📦 CONFIRMAÇÃO DE PEDIDO — CALMIDROL
+  const famevity = produtoDoKit(p.kit) === 'famevity';
+  const blocoPedido = famevity
+    ? blocoPedidoFamevity(k, avista, parc, p.pagamento)
+    : `📦 SEU PEDIDO
+▪ Produto: ${k.nome} - ${k.frascos} frascos
+▪ Modalidade: PAGAMENTO NA ENTREGA
+▪ Preço: ${precoLinha}`;
+
+  return `📦 CONFIRMAÇÃO DE PEDIDO — ${famevity ? 'FAMEVITY' : 'CALMIDROL'}
 
 Olá, ${p.nome || '—'}! 😊
 Seu pedido foi registrado com sucesso e já está sendo separado pela nossa equipe.
@@ -679,10 +733,7 @@ ENDEREÇO DE ENTREGA
 ▸ CIDADE: ${cidade || '—'}
 ▸ CEP: ${p.cep || '—'}
 ━━━━━━━━━━━━━━
-📦 SEU PEDIDO
-▪ Produto: ${k.nome} - ${k.frascos} frascos
-▪ Modalidade: PAGAMENTO NA ENTREGA
-▪ Preço: ${precoLinha}
+${blocoPedido}
 ━━━━━━━━━━━━━━
 💳 FORMAS DE PAGAMENTO
 ✔ PIX
@@ -697,6 +748,22 @@ O não pagamento poderá resultar na adoção das medidas de cobrança cabíveis
 ⚠️ CPF vinculado ao pedido: ${p.cpf || '—'}
 ━━━━━━━━━━━━━━
 📲 Digite "SIM" para confirmar seu pedido.`;
+}
+
+// Bloco do pedido no termo do Famevity (ex: "12x de R$ 46,23").
+function blocoPedidoFamevity(k, avista, parc, pagamento) {
+  const m = (parc || '').match(/^(\d+)x/);
+  const parcN = m ? m[1] : '12';
+  const parcValor = fmtMoeda(parseValorBR((parc || '').split('R$')[1]));
+  const avistaTxt = 'R$' + fmtMoeda(parseValorBR(avista));
+
+  const linhaParc = `💳 Em ${parcN}x de R$ ${parcValor} no cartão de crédito`;
+  let linhas;
+  if (pagamento === 'avista')         linhas = `💰 ${avistaTxt} AVISTA no boleto ou pix`;
+  else if (pagamento === 'parcelado') linhas = linhaParc;
+  else                                linhas = `${linhaParc}\n💰 Ou ${avistaTxt} AVISTA no boleto ou pix`;
+
+  return `📦 ${k.nome.toUpperCase()}\n${linhas}`;
 }
 
 function copyTermo(id) {
@@ -804,6 +871,7 @@ function renderModalBody() {
   if (!p) { closeView(); return; }
 
   const [dur, tipo] = (p.kit || '3m_normal').split('_');
+  const prod = produtoDoKit(p.kit);
   const k = KITS[p.kit] || { nome: '—', frascos: '—' };
   const avistaNum = parseValorBR(p.precoAvista || k.avista);
   const parcAtual = parseInt((p.precoParc || '').match(/^\d+/)?.[0] || '12', 10);
@@ -849,7 +917,8 @@ function renderModalBody() {
       </div>
       <div class="view-section">
         <div class="view-section-title">💊 Kit e pagamento</div>
-        ${vmRow('Kit', k.nome + ' (' + k.frascos + ' frascos)')}
+        ${vmRow('Produto', PRODUTOS[produtoDoKit(p.kit)].label)}
+        ${vmRow('Kit', descricaoKit(k))}
         ${vmRow('Valor à vista', p.precoAvista || k.avista)}
         ${vmRow('Parcelado', p.precoParc || k.parc)}
         ${vmRow('Forma de pagamento', fmtPagamento(p.pagamento))}
@@ -902,18 +971,19 @@ function renderModalBody() {
 
     <div class="view-section">
       <div class="view-section-title">💊 Kit e pagamento</div>
-      <label class="pag-label">Duração</label>
+      <label class="pag-label">Produto</label>
       <div class="vm-pill-row">
-        <div class="kit-dur-btn ${dur==='3m'?'sel':''}" onclick="vmSelDur('3m')">3 meses</div>
-        <div class="kit-dur-btn ${dur==='5m'?'sel':''}" onclick="vmSelDur('5m')">5 meses</div>
-        <div class="kit-dur-btn ${dur==='7m'?'sel':''}" onclick="vmSelDur('7m')">7 meses</div>
-        <div class="kit-dur-btn ${dur==='ultra'?'sel':''}" onclick="vmSelDur('ultra')">ULTRA</div>
+        ${Object.keys(PRODUTOS).map(pr => `<div class="kit-prod-btn ${pr===prod?'sel':''}" onclick="vmSelProduto('${pr}')">${PRODUTOS[pr].label}</div>`).join('')}
       </div>
-      <label class="pag-label kit-tipo-label">Tipo de preço</label>
+      <label class="pag-label kit-tipo-label">Duração</label>
+      <div class="vm-pill-row">
+        ${PRODUTOS[prod].durs.map(([val, label]) => `<div class="kit-dur-btn ${dur===val?'sel':''}" onclick="vmSelDur('${val}')">${label}</div>`).join('')}
+      </div>
+      ${PRODUTOS[prod].temDesconto ? `<label class="pag-label kit-tipo-label">Tipo de preço</label>
       <div class="vm-pill-row">
         <div class="kit-tipo-btn ${tipo==='normal'?'sel':''}" id="vm-tipo-normal" data-tipo="normal" onclick="vmSelTipo('normal')">Preço normal</div>
         <div class="kit-tipo-btn ${tipo==='desc'?'sel':''}" id="vm-tipo-desc" data-tipo="desc" onclick="vmSelTipo('desc')">Com desconto</div>
-      </div>
+      </div>` : ''}
       <div class="vm-2col kit-valor-grid">
         <div class="form-group"><label>Valor à vista (R$)</label><input type="text" id="vm-valor-avista" value="${fmtMoeda(avistaNum)}"></div>
         <div class="form-group"><label>Parcelamento</label><select id="vm-parcelamento"></select></div>
@@ -976,6 +1046,10 @@ function vmSalvarPreco() {
   render();
   renderAgendados();
   renderArquivados();
+}
+
+function vmSelProduto(prod) {
+  aplicarKitModal(PRODUTOS[prod].durs[0][0], 'normal');
 }
 
 function vmSelDur(val) {

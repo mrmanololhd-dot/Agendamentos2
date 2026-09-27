@@ -244,6 +244,39 @@ textarea { resize: vertical; min-height: 72px; }
   color: #fff;
   box-shadow: 0 2px 8px rgba(24,95,165,.35);
 }
+.kit-dur-row.n3 { grid-template-columns: repeat(3, 1fr); }
+#card-famevity .kit-dur-row { margin-bottom: 0; }
+#card-famevity.kit-card-ativo .kit-dur-row { margin-bottom: 18px; }
+
+/* Card do kit escolhido fica em destaque; o outro fica mais apagado */
+.kit-card { transition: opacity .15s, border-color .15s; }
+.kit-card:not(.kit-card-ativo) { opacity: .7; }
+.kit-card:not(.kit-card-ativo):hover { opacity: 1; }
+.kit-card.kit-card-ativo { border-color: var(--accent); }
+
+/* ===== KIT — SELETOR DE PRODUTO ===== */
+.kit-prod-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 14px;
+}
+.kit-prod-btn {
+  padding: 13px 8px;
+  border-radius: 10px;
+  background: var(--unsel-bg);
+  color: var(--unsel-text);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all .15s;
+  border: 2px solid transparent;
+}
+.kit-prod-btn:hover { background: var(--unsel-hover); }
+.kit-prod-btn.sel { background: #0F766E; color: #fff; box-shadow: 0 2px 8px rgba(15,118,110,.35); }
 
 /* ===== KIT — SELETOR DE TIPO DE PREÇO ===== */
 .kit-tipo-label { margin-top: 4px; }
