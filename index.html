@@ -262,20 +262,23 @@
         <option value="confirmado">Confirmado</option>
         <option value="pendente">Pendente</option>
       </select>
+      <button class="btn-arquivar" onclick="desarquivarSelecionados()">↩️ Tirar dos arquivados</button>
     </div>
     <div class="tbl-wrap">
       <table>
         <colgroup>
+          <col style="width:4%">
+          <col style="width:11%">
+          <col style="width:12%">
           <col style="width:12%">
           <col style="width:13%">
-          <col style="width:13%">
-          <col style="width:14%">
           <col style="width:8%">
           <col style="width:10%">
           <col style="width:24%">
           <col style="width:6%">
         </colgroup>
         <thead><tr>
+          <th><input type="checkbox" onclick="toggleSelecionarTodos(this,'arquivados')" title="Selecionar todos"></th>
           <th>Data</th><th>Nome</th><th>Telefone</th>
           <th>Kit</th>
           <th>Status</th><th>Termo</th><th>Informações</th><th></th>

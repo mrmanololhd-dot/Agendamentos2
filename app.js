@@ -451,7 +451,7 @@ function renderArquivados() {
     return;
   }
   empty.style.display = 'none';
-  tbody.innerHTML = list.map(p => pedidoRowHtml(p, false)).join('');
+  tbody.innerHTML = list.map(p => pedidoRowHtml(p, true)).join('');
 }
 
 function pedidoRowHtml(p, comCheckbox) {
@@ -511,8 +511,10 @@ ${comCheckbox ? `<td><input type="checkbox" class="row-check" value="${p.id}"></
 }
 
 // ===== SELEÇÃO E ARQUIVAMENTO =====
+const TBODY_POR_ABA = { lista: 'tbody', agendados: 'tbody-ag', arquivados: 'tbody-arq' };
+
 function toggleSelecionarTodos(el, origem) {
-  const tbodyId = origem === 'lista' ? 'tbody' : 'tbody-ag';
+  const tbodyId = TBODY_POR_ABA[origem];
   document.querySelectorAll('#' + tbodyId + ' .row-check').forEach(c => { c.checked = el.checked; });
 }
 
@@ -555,6 +557,28 @@ function desagendarSelecionados() {
   render();
   renderAgendados();
   showToast(`↩️ ${ids.length} pedido(s) voltaram para Pedidos.`);
+}
+
+// Tira os pedidos marcados da aba Arquivados. Eles voltam para Pedidos ou
+// Agendados, conforme o status de cada um.
+function desarquivarSelecionados() {
+  const marcados = document.querySelectorAll('#tbody-arq .row-check:checked');
+  if (!marcados.length) {
+    showToast('Selecione ao menos um pedido pra tirar dos arquivados.', 'error');
+    return;
+  }
+  const ids = Array.from(marcados).map(c => Number(c.value));
+  ids.forEach(id => {
+    const p = pedidos.find(x => x.id === id);
+    if (p) p.arquivado = false;
+  });
+  saveData();
+  badge();
+  stats();
+  render();
+  renderAgendados();
+  renderArquivados();
+  showToast(`↩️ ${ids.length} pedido(s) tirado(s) dos arquivados.`);
 }
 
 // ===== DATA / STATUS HELPERS =====
