@@ -537,6 +537,26 @@ function arquivarSelecionados(origem) {
   showToast(`📦 ${ids.length} pedido(s) arquivado(s).`);
 }
 
+// Volta os pedidos marcados na aba Agendados para a aba Pedidos (status "Agendar")
+function desagendarSelecionados() {
+  const marcados = document.querySelectorAll('#tbody-ag .row-check:checked');
+  if (!marcados.length) {
+    showToast('Selecione ao menos um pedido pra tirar dos agendados.', 'error');
+    return;
+  }
+  const ids = Array.from(marcados).map(c => Number(c.value));
+  ids.forEach(id => {
+    const p = pedidos.find(x => x.id === id);
+    if (p) p.status = 'agendar';
+  });
+  saveData();
+  badge();
+  stats();
+  render();
+  renderAgendados();
+  showToast(`↩️ ${ids.length} pedido(s) voltaram para Pedidos.`);
+}
+
 // ===== DATA / STATUS HELPERS =====
 function todayStr() {
   const d = new Date();
