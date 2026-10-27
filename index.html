@@ -114,6 +114,33 @@
       </div>
     </div>
 
+    <div class="card kit-card" id="card-norvy">
+      <div class="sec-title">🌙 Kit Norvy</div>
+
+      <label class="pag-label">Protocolo</label>
+      <div class="kit-dur-row n2">
+        <div class="kit-dur-btn" onclick="selDur(this,'ni')">Protocolo Inicial<small>3 meses</small></div>
+        <div class="kit-dur-btn" onclick="selDur(this,'nc')">Protocolo Completo<small>5 meses</small></div>
+      </div>
+
+      <div class="norvy-desc">
+        <label class="pag-label kit-tipo-label">Desconto</label>
+        <select id="f-desconto" class="desc-sel" onchange="selDesconto(this.value)">
+          <option value="0">Sem desconto</option>
+          <option value="1">1% de desconto</option>
+          <option value="2">2% de desconto</option>
+          <option value="3">3% de desconto</option>
+          <option value="4">4% de desconto</option>
+          <option value="5">5% de desconto</option>
+          <option value="6">6% de desconto</option>
+          <option value="7">7% de desconto</option>
+          <option value="8">8% de desconto</option>
+          <option value="9">9% de desconto</option>
+          <option value="10">10% de desconto</option>
+        </select>
+      </div>
+    </div>
+
     <div class="card">
       <div class="sec-title">📝 Informações adicionais</div>
       <div class="form-group">
@@ -155,6 +182,8 @@
         <option value="f2m_normal">Famevity – 2 meses</option>
         <option value="f4m_normal">Famevity – 4 meses</option>
         <option value="f8m_normal">Famevity – 8 meses</option>
+        <option value="ni_normal">Norvy – Protocolo Inicial</option>
+        <option value="nc_normal">Norvy – Protocolo Completo</option>
       </select>
       <select id="fil-termo" onchange="render()">
         <option value="">Todos os termos</option>
@@ -205,6 +234,8 @@
         <option value="f2m_normal">Famevity – 2 meses</option>
         <option value="f4m_normal">Famevity – 4 meses</option>
         <option value="f8m_normal">Famevity – 8 meses</option>
+        <option value="ni_normal">Norvy – Protocolo Inicial</option>
+        <option value="nc_normal">Norvy – Protocolo Completo</option>
       </select>
       <select id="fil-termo-ag" onchange="renderAgendados()">
         <option value="">Todos os termos</option>
@@ -256,6 +287,8 @@
         <option value="f2m_normal">Famevity – 2 meses</option>
         <option value="f4m_normal">Famevity – 4 meses</option>
         <option value="f8m_normal">Famevity – 8 meses</option>
+        <option value="ni_normal">Norvy – Protocolo Inicial</option>
+        <option value="nc_normal">Norvy – Protocolo Completo</option>
       </select>
       <select id="fil-termo-arq" onchange="renderArquivados()">
         <option value="">Todos os termos</option>

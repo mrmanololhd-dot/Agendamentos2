@@ -5,6 +5,7 @@ let delId = null;
 let selProdVal = 'calmidrol';
 let selDurVal = '3m';
 let selTipoVal = 'normal';
+let selDescVal = 0; // % de desconto da Norvy (0 a 10)
 let selPagVal = 'ambos';
 
 const KITS = {
@@ -19,6 +20,10 @@ const KITS = {
   'f2m_normal':  { produto: 'famevity',  nome: 'Tratamento Famevity 2 meses',          avista: 'R$ 247,00', parc: '12x de R$ 25,55' },
   'f4m_normal':  { produto: 'famevity',  nome: 'Tratamento Famevity 4 meses',          avista: 'R$ 447,00', parc: '12x de R$ 46,23' },
   'f8m_normal':  { produto: 'famevity',  nome: 'Tratamento Completo Famevity 8 meses', avista: 'R$ 647,00', parc: '12x de R$ 66,91' },
+  'ni_normal':   { produto: 'norvy', nome: 'Protocolo Inicial – 3 meses',  nomeTermo: 'Protocolo Inicial',
+                   itens: '3 frascos Norvy Moon + 1 Norvy Brew', avista: 'R$ 347,00', parc: '12x de R$ 36,29' },
+  'nc_normal':   { produto: 'norvy', nome: 'Protocolo Completo – 5 meses', nomeTermo: 'Protocolo Completo',
+                   itens: '5 frascos Norvy Moon + 1 Norvy Brew + brinde Norvy Drops', avista: 'R$ 489,00', parc: '12x de R$ 51,14' },
 };
 
 // Durações disponíveis em cada produto. Famevity não tem preço com desconto.
@@ -27,7 +32,15 @@ const PRODUTOS = {
     durs: [['3m', '3 meses'], ['5m', '5 meses'], ['7m', '7 meses'], ['ultra', 'ULTRA']] },
   famevity:  { label: 'Kit Famevity', temDesconto: false,
     durs: [['f2m', '2 meses'], ['f4m', '4 meses'], ['f8m', '8 meses']] },
+  norvy:     { label: 'Kit Norvy', temDesconto: false, descontoMax: 10,
+    durs: [['ni', 'Protocolo Inicial'], ['nc', 'Protocolo Completo']] },
 };
+
+// Multiplicadores das parcelas da Norvy (parcela = valor à vista × fator).
+// Tirados da tabela oficial do Protocolo Completo (R$ 489); servem pra calcular
+// as parcelas quando há desconto.
+const FATORES_NORVY = [489.00, 262.84, 178.16, 135.45, 109.83, 92.83, 80.75, 71.09, 64.44, 59.12, 54.77, 51.14]
+  .map(v => v / 489);
 
 // Tabelas oficiais de parcelas (valor à vista em centavos -> parcelas de 1x a 12x).
 // Quando o valor à vista bate com uma dessas, usa a tabela em vez do cálculo.
@@ -35,6 +48,8 @@ const TABELAS_PARCELAS = {
   24700: [247.00, 130.00, 88.15, 67.23, 54.69, 46.34, 40.38, 35.92, 32.45, 29.68, 27.42, 25.55],
   44700: [447.00, 235.27, 159.52, 121.67, 98.97, 83.86, 73.08, 65.00, 58.73, 53.72, 49.63, 46.23],
   64700: [647.00, 340.53, 230.89, 176.10, 143.26, 121.38, 105.77, 94.08, 85.01, 77.76, 71.84, 66.91],
+  34700: [347.00, 186.51, 126.42, 96.12, 77.94, 65.87, 57.30, 50.45, 45.73, 41.95, 38.86, 36.29],
+  48900: [489.00, 262.84, 178.16, 135.45, 109.83, 92.83, 80.75, 71.09, 64.44, 59.12, 54.77, 51.14],
 };
 
 function produtoDoKit(kit) {
@@ -42,7 +57,14 @@ function produtoDoKit(kit) {
 }
 
 function descricaoKit(k) {
+  if (k.itens) return k.nome + ' (' + k.itens + ')';
   return k.frascos ? k.nome + ' (' + k.frascos + ' frascos)' : k.nome;
+}
+
+// Valor à vista do kit já com o desconto em % aplicado
+function precoComDesconto(kit, desc) {
+  const base = parseValorBR(valorNumerico((KITS[kit] || {}).avista));
+  return Math.round(base * (100 - (desc || 0))) / 100;
 }
 
 // ===== INICIALIZAÇÃO =====
@@ -70,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-valor-avista').addEventListener('input', function () {
     const selEl = document.getElementById('f-parcelamento');
     const atual = parseInt(selEl.value || '12', 10);
-    popularParcelamento(selEl, parseValorBR(this.value), atual);
+    popularParcelamento(selEl, parseValorBR(this.value), atual, kitAtualKey());
   });
   document.getElementById('f-uf').addEventListener('input', function () {
     this.value = this.value.toUpperCase();
@@ -171,12 +193,19 @@ function selDur(el, val) {
     selProdVal = prod;
     selTipoVal = 'normal';
     document.querySelectorAll('.kit-tipo-btn').forEach((b, i) => b.classList.toggle('sel', i === 0));
+    selDescVal = 0;
+    document.getElementById('f-desconto').value = '0';
   }
   document.querySelectorAll('.kit-card .kit-dur-btn').forEach(b => b.classList.remove('sel'));
   el.classList.add('sel');
   document.querySelectorAll('.kit-card').forEach(c => c.classList.toggle('kit-card-ativo', c.id === 'card-' + prod));
   document.getElementById('card-' + prod).appendChild(document.getElementById('kit-detalhes'));
   selDurVal = val;
+  preencherValoresKit();
+}
+
+function selDesconto(val) {
+  selDescVal = parseInt(val, 10) || 0;
   preencherValoresKit();
 }
 
@@ -192,10 +221,10 @@ function selTipo(el, val) {
 function preencherValoresKit() {
   const k = KITS[kitAtualKey()];
   if (!k) return;
-  const avistaNum = parseValorBR(valorNumerico(k.avista));
+  const avistaNum = precoComDesconto(kitAtualKey(), k.produto === 'norvy' ? selDescVal : 0);
   document.getElementById('f-valor-avista').value = fmtMoeda(avistaNum);
-  popularParcelamento(document.getElementById('f-parcelamento'), avistaNum, 12);
-  document.getElementById('kit-info-line').textContent = '📦 ' + (k.frascos ? k.frascos + ' frascos — ' : '') + k.nome;
+  popularParcelamento(document.getElementById('f-parcelamento'), avistaNum, 12, kitAtualKey());
+  document.getElementById('kit-info-line').textContent = '📦 ' + (k.frascos ? k.frascos + ' frascos — ' : '') + k.nome + (k.itens ? ' — ' + k.itens : '');
 }
 
 // Extrai só o número (ex: "R$ 329,00" -> "329,00"; "12x de R$ 34,03" -> "34,03")
@@ -207,9 +236,12 @@ function valorNumerico(v) {
 // Taxa mensal usada no parcelamento (equivalente à tabela de parcelas do site)
 const TAXA_PARCELA = 0.0349;
 
-function calcParcelas(pv) {
+function calcParcelas(pv, kit) {
   const tabela = TABELAS_PARCELAS[Math.round(pv * 100)];
   if (tabela) return tabela.map((valor, i) => ({ n: i + 1, valor }));
+  if (kit && produtoDoKit(kit) === 'norvy') {
+    return FATORES_NORVY.map((f, i) => ({ n: i + 1, valor: Math.round(pv * f * 100) / 100 }));
+  }
   const arr = [];
   for (let n = 1; n <= 12; n++) {
     let valor;
@@ -225,8 +257,8 @@ function calcParcelas(pv) {
 
 // Recria as opções de um select de parcelamento a partir do valor à vista.
 // alvoN é a parcela que deve ficar selecionada (usa 12 se não for possível).
-function popularParcelamento(selEl, pv, alvoN) {
-  const parcelas = calcParcelas(pv);
+function popularParcelamento(selEl, pv, alvoN, kit) {
+  const parcelas = calcParcelas(pv, kit);
   selEl.innerHTML = parcelas.map(p =>
     `<option value="${p.n}">${p.n}x de R$ ${fmtMoeda(p.valor)}${p.n === 1 ? ' (à vista)' : ''}</option>`
   ).join('');
@@ -327,7 +359,7 @@ function salvar() {
   const kit = kitAtualKey();
   const valorAvista = parseValorBR(document.getElementById('f-valor-avista').value);
   const parcN = parseInt(document.getElementById('f-parcelamento').value || '12', 10);
-  const parcelaEscolhida = calcParcelas(valorAvista).find(p => p.n === parcN) || { n: 12, valor: valorAvista };
+  const parcelaEscolhida = calcParcelas(valorAvista, kit).find(p => p.n === parcN) || { n: 12, valor: valorAvista };
   const dataEscolhida = document.getElementById('f-data').value;
 
   const p = {
@@ -349,6 +381,7 @@ function salvar() {
     precoAvista: 'R$ ' + fmtMoeda(valorAvista),
     precoParc:   parcelaEscolhida.n + 'x de R$ ' + fmtMoeda(parcelaEscolhida.valor),
     pagamento: selPagVal,
+    desconto: produtoDoKit(kit) === 'norvy' ? selDescVal : 0,
     info:    document.getElementById('f-info').value,
     status:  document.getElementById('f-status').value,
     termo:   'pendente',
@@ -485,6 +518,10 @@ ${comCheckbox ? `<td><input type="checkbox" class="row-check" value="${p.id}"></
       <option value="f2m_normal" ${p.kit==='f2m_normal'?'selected':''}>Famevity 2 meses</option>
       <option value="f4m_normal" ${p.kit==='f4m_normal'?'selected':''}>Famevity 4 meses</option>
       <option value="f8m_normal" ${p.kit==='f8m_normal'?'selected':''}>Famevity 8 meses</option>
+    </optgroup>
+    <optgroup label="Norvy">
+      <option value="ni_normal" ${p.kit==='ni_normal'?'selected':''}>Norvy Inicial</option>
+      <option value="nc_normal" ${p.kit==='nc_normal'?'selected':''}>Norvy Completo</option>
     </optgroup>
   </select>
 </td>
@@ -711,8 +748,8 @@ function updKitRow(id, sel) {
   const p = pedidos.find(x => x.id === id);
   if (p) {
     p.kit = val;
-    p.precoAvista = k.avista;
-    p.precoParc = k.parc;
+    if (k.produto !== 'norvy') p.desconto = 0;
+    aplicarPrecoPadrao(p);
     saveData();
     stats();
   }
@@ -754,6 +791,8 @@ function gerarTermo(p) {
   const rua  = [p.rua, p.num].filter(Boolean).join(', ');
   const comp = p.comp ? '\n▸ COMPLEMENTO – ' + p.comp : '';
   const cidade = [p.cidade, p.uf].filter(Boolean).join(' - ');
+
+  if (produtoDoKit(p.kit) === 'norvy') return gerarTermoNorvy(p, k, avista, parc);
 
   const famevity = produtoDoKit(p.kit) === 'famevity';
   const blocoPedido = famevity
@@ -808,6 +847,51 @@ function blocoPedidoFamevity(k, avista, parc, pagamento) {
   else                                linhas = `${linhaParc}\n💰 Ou ${avistaTxt} AVISTA no boleto ou pix`;
 
   return `📦 ${k.nome.toUpperCase()}\n${linhas}`;
+}
+
+// "R$ 347" quando não tem centavos, "R$ 329,65" quando tem
+function fmtValorCurto(n) {
+  return Math.round(n * 100) % 100 === 0 ? 'R$ ' + Math.round(n) : 'R$ ' + fmtMoeda(n);
+}
+
+function gerarTermoNorvy(p, k, avista, parc) {
+  const avistaTxt = fmtValorCurto(parseValorBR(avista));
+  const m = (parc || '').match(/^(\d+)x/);
+  const parcTxt = (m ? m[1] : '12') + 'x de R$ ' + fmtMoeda(parseValorBR((parc || '').split('R$')[1]));
+
+  let valor;
+  if (p.pagamento === 'avista')         valor = avistaTxt + ' à vista';
+  else if (p.pagamento === 'parcelado') valor = parcTxt;
+  else                                  valor = avistaTxt + ' ou ' + parcTxt;
+
+  const endereco = enderecoCompletoTexto(p).split('\n').join('\n   ') || '—';
+
+  return `📦 CONFIRMAÇÃO DE PEDIDO — NORVY
+
+Seu pedido foi registrado com sucesso e já está sendo separado pela nossa equipe.
+
+👤 DADOS DO CLIENTE
+▪️ Nome: ${p.nome || '—'}
+▪️ CPF: ${p.cpf || '—'}
+▪️ Endereço: ${endereco}
+
+📦 SEU PEDIDO
+▪️ Produto: ${k.nomeTermo || k.nome}
+▪️ Modalidade: Pagamento na entrega
+▪️ Valor: ${valor}
+
+💳 FORMAS DE PAGAMENTO
+✔️ PIX
+✔️ Cartão de crédito em até 12x
+✔️ Boleto bancário à vista
+❌ Não trabalhamos com boleto parcelado
+
+⚠️ IMPORTANTE
+O pagamento deve ser realizado no dia da entrega do pedido, diretamente com o nosso setor financeiro, que entrará em contato assim que o produto for recebido no seu endereço.
+
+Em caso de não pagamento, poderão ser adotadas as medidas de cobrança previstas em lei, podendo incluir a inclusão do seu nome em órgãos de proteção ao crédito, conforme legislação vigente e após os avisos prévios exigidos por lei.
+
+✅ Ao responder "SIM", você confirma que os dados acima estão corretos e concorda com as condições deste pedido.`;
 }
 
 function copyTermo(id) {
@@ -963,6 +1047,7 @@ function renderModalBody() {
         <div class="view-section-title">💊 Kit e pagamento</div>
         ${vmRow('Produto', PRODUTOS[produtoDoKit(p.kit)].label)}
         ${vmRow('Kit', descricaoKit(k))}
+        ${prod === 'norvy' ? vmRow('Desconto', (p.desconto || 0) + '%') : ''}
         ${vmRow('Valor à vista', p.precoAvista || k.avista)}
         ${vmRow('Parcelado', p.precoParc || k.parc)}
         ${vmRow('Forma de pagamento', fmtPagamento(p.pagamento))}
@@ -1023,6 +1108,8 @@ function renderModalBody() {
       <div class="vm-pill-row">
         ${PRODUTOS[prod].durs.map(([val, label]) => `<div class="kit-dur-btn ${dur===val?'sel':''}" onclick="vmSelDur('${val}')">${label}</div>`).join('')}
       </div>
+      ${PRODUTOS[prod].descontoMax ? `<label class="pag-label kit-tipo-label">Desconto</label>
+      <select class="desc-sel" onchange="vmSelDesconto(this.value)">${opcoesDesconto(PRODUTOS[prod].descontoMax, p.desconto || 0)}</select>` : ''}
       ${PRODUTOS[prod].temDesconto ? `<label class="pag-label kit-tipo-label">Tipo de preço</label>
       <div class="vm-pill-row">
         <div class="kit-tipo-btn ${tipo==='normal'?'sel':''}" id="vm-tipo-normal" data-tipo="normal" onclick="vmSelTipo('normal')">Preço normal</div>
@@ -1050,11 +1137,11 @@ function renderModalBody() {
   `;
 
   const parcSel = document.getElementById('vm-parcelamento');
-  popularParcelamento(parcSel, avistaNum, parcAtual);
+  popularParcelamento(parcSel, avistaNum, parcAtual, p.kit);
 
   document.getElementById('vm-valor-avista').addEventListener('input', function () {
     const atual = parseInt(parcSel.value || '12', 10);
-    popularParcelamento(parcSel, parseValorBR(this.value), atual);
+    popularParcelamento(parcSel, parseValorBR(this.value), atual, p.kit);
   });
   document.getElementById('vm-valor-avista').addEventListener('change', vmSalvarPreco);
   parcSel.addEventListener('change', vmSalvarPreco);
@@ -1082,7 +1169,7 @@ function vmSalvarPreco() {
   if (!p) return;
   const avistaNum = parseValorBR(document.getElementById('vm-valor-avista').value);
   const parcN = parseInt(document.getElementById('vm-parcelamento').value || '12', 10);
-  const parcela = calcParcelas(avistaNum).find(x => x.n === parcN) || { n: 12, valor: avistaNum };
+  const parcela = calcParcelas(avistaNum, p.kit).find(x => x.n === parcN) || { n: 12, valor: avistaNum };
   p.precoAvista = 'R$ ' + fmtMoeda(avistaNum);
   p.precoParc = parcela.n + 'x de R$ ' + fmtMoeda(parcela.valor);
   saveData();
@@ -1090,6 +1177,41 @@ function vmSalvarPreco() {
   render();
   renderAgendados();
   renderArquivados();
+}
+
+function opcoesDesconto(max, atual) {
+  let html = '';
+  for (let d = 0; d <= max; d++) {
+    html += `<option value="${d}" ${d === atual ? 'selected' : ''}>${d === 0 ? 'Sem desconto' : d + '% de desconto'}</option>`;
+  }
+  return html;
+}
+
+// Aplica o preço padrão do kit (com o desconto do pedido, se for Norvy)
+function aplicarPrecoPadrao(p) {
+  const k = KITS[p.kit];
+  if (!k) return;
+  if (k.produto === 'norvy') {
+    const pv = precoComDesconto(p.kit, p.desconto || 0);
+    p.precoAvista = 'R$ ' + fmtMoeda(pv);
+    p.precoParc = '12x de R$ ' + fmtMoeda(calcParcelas(pv, p.kit)[11].valor);
+  } else {
+    p.precoAvista = k.avista;
+    p.precoParc = k.parc;
+  }
+}
+
+function vmSelDesconto(val) {
+  const p = pedidoAtualView();
+  if (!p) return;
+  p.desconto = parseInt(val, 10) || 0;
+  aplicarPrecoPadrao(p);
+  saveData();
+  stats();
+  render();
+  renderAgendados();
+  renderArquivados();
+  renderModalBody();
 }
 
 function vmSelProduto(prod) {
@@ -1117,8 +1239,8 @@ function aplicarKitModal(dur, tipo) {
   const k = KITS[kit];
   if (!k) return;
   p.kit = kit;
-  p.precoAvista = k.avista;
-  p.precoParc = k.parc;
+  if (k.produto !== 'norvy') p.desconto = 0;
+  aplicarPrecoPadrao(p);
   saveData();
   stats();
   render();
