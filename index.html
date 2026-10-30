@@ -79,6 +79,23 @@
 
       <!-- Valor e pagamento: fica dentro do card do kit escolhido (movido pelo app.js) -->
       <div id="kit-detalhes">
+        <div class="norvy-desc" id="kit-desc-wrap" style="display:none">
+          <label class="pag-label kit-tipo-label">Desconto</label>
+          <select id="f-desconto" class="desc-sel" onchange="selDesconto(this.value)">
+            <option value="0">Sem desconto</option>
+            <option value="1">1% de desconto</option>
+            <option value="2">2% de desconto</option>
+            <option value="3">3% de desconto</option>
+            <option value="4">4% de desconto</option>
+            <option value="5">5% de desconto</option>
+            <option value="6">6% de desconto</option>
+            <option value="7">7% de desconto</option>
+            <option value="8">8% de desconto</option>
+            <option value="9">9% de desconto</option>
+            <option value="10">10% de desconto</option>
+          </select>
+        </div>
+
         <div class="kit-info-line" id="kit-info-line">📦 3 frascos — Protocolo Inicial – 3 meses</div>
 
         <div class="form-grid g2 kit-valor-grid">
@@ -122,22 +139,15 @@
         <div class="kit-dur-btn" onclick="selDur(this,'ni')">Protocolo Inicial<small>3 meses</small></div>
         <div class="kit-dur-btn" onclick="selDur(this,'nc')">Protocolo Completo<small>5 meses</small></div>
       </div>
+    </div>
 
-      <div class="norvy-desc">
-        <label class="pag-label kit-tipo-label">Desconto</label>
-        <select id="f-desconto" class="desc-sel" onchange="selDesconto(this.value)">
-          <option value="0">Sem desconto</option>
-          <option value="1">1% de desconto</option>
-          <option value="2">2% de desconto</option>
-          <option value="3">3% de desconto</option>
-          <option value="4">4% de desconto</option>
-          <option value="5">5% de desconto</option>
-          <option value="6">6% de desconto</option>
-          <option value="7">7% de desconto</option>
-          <option value="8">8% de desconto</option>
-          <option value="9">9% de desconto</option>
-          <option value="10">10% de desconto</option>
-        </select>
+    <div class="card kit-card" id="card-mag">
+      <div class="sec-title">💚 Norvy 5 Magnésios</div>
+
+      <label class="pag-label">Duração</label>
+      <div class="kit-dur-row n2">
+        <div class="kit-dur-btn" onclick="selDur(this,'m6')">Mag 6 meses + brinde<small>2 potes · 360 cápsulas</small></div>
+        <div class="kit-dur-btn" onclick="selDur(this,'m9')">Mag 9 meses + brinde<small>3 potes · 540 cápsulas</small></div>
       </div>
     </div>
 
@@ -184,6 +194,8 @@
         <option value="f8m_normal">Famevity – 8 meses</option>
         <option value="ni_normal">Norvy – Protocolo Inicial</option>
         <option value="nc_normal">Norvy – Protocolo Completo</option>
+        <option value="m6_normal">Norvy 5 Magnésios – 6 meses</option>
+        <option value="m9_normal">Norvy 5 Magnésios – 9 meses</option>
       </select>
       <select id="fil-termo" onchange="render()">
         <option value="">Todos os termos</option>
@@ -236,6 +248,8 @@
         <option value="f8m_normal">Famevity – 8 meses</option>
         <option value="ni_normal">Norvy – Protocolo Inicial</option>
         <option value="nc_normal">Norvy – Protocolo Completo</option>
+        <option value="m6_normal">Norvy 5 Magnésios – 6 meses</option>
+        <option value="m9_normal">Norvy 5 Magnésios – 9 meses</option>
       </select>
       <select id="fil-termo-ag" onchange="renderAgendados()">
         <option value="">Todos os termos</option>
@@ -289,6 +303,8 @@
         <option value="f8m_normal">Famevity – 8 meses</option>
         <option value="ni_normal">Norvy – Protocolo Inicial</option>
         <option value="nc_normal">Norvy – Protocolo Completo</option>
+        <option value="m6_normal">Norvy 5 Magnésios – 6 meses</option>
+        <option value="m9_normal">Norvy 5 Magnésios – 9 meses</option>
       </select>
       <select id="fil-termo-arq" onchange="renderArquivados()">
         <option value="">Todos os termos</option>

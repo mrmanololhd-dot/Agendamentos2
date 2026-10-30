@@ -249,8 +249,8 @@ textarea { resize: vertical; min-height: 72px; }
 #card-famevity.kit-card-ativo .kit-dur-row { margin-bottom: 18px; }
 .kit-dur-row.n2 { grid-template-columns: 1fr 1fr; }
 .kit-dur-btn small { display: block; font-weight: 600; font-size: 11.5px; opacity: .75; margin-top: 2px; }
-#card-norvy:not(.kit-card-ativo) .kit-dur-row { margin-bottom: 0; }
-#card-norvy:not(.kit-card-ativo) .norvy-desc { display: none; }
+#card-norvy:not(.kit-card-ativo) .kit-dur-row,
+#card-mag:not(.kit-card-ativo) .kit-dur-row { margin-bottom: 0; }
 .norvy-desc { margin-bottom: 18px; }
 .desc-sel { width: 100%; max-width: 260px; margin-top: 8px; }
 

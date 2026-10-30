@@ -5,7 +5,7 @@ let delId = null;
 let selProdVal = 'calmidrol';
 let selDurVal = '3m';
 let selTipoVal = 'normal';
-let selDescVal = 0; // % de desconto da Norvy (0 a 10)
+let selDescVal = 0; // % de desconto dos produtos Norvy (0 a 10)
 let selPagVal = 'ambos';
 
 const KITS = {
@@ -24,6 +24,10 @@ const KITS = {
                    itens: '3 frascos Norvy Moon + 1 Norvy Brew', avista: 'R$ 347,00', parc: '12x de R$ 36,29' },
   'nc_normal':   { produto: 'norvy', nome: 'Protocolo Completo – 5 meses', nomeTermo: 'Protocolo Completo',
                    itens: '5 frascos Norvy Moon + 1 Norvy Brew + brinde Norvy Drops', avista: 'R$ 489,00', parc: '12x de R$ 51,14' },
+  'm6_normal':   { produto: 'mag', nome: '5 Magnésios – 6 meses', nomeTermo: 'Mag 6 meses + brinde',
+                   itens: '2 potes · 360 cápsulas + brinde Melatonina Spray', avista: 'R$ 327,00', parc: '12x de R$ 34,20' },
+  'm9_normal':   { produto: 'mag', nome: '5 Magnésios – 9 meses', nomeTermo: 'Mag 9 meses + brinde',
+                   itens: '3 potes · 540 cápsulas + brinde Melatonina Spray', avista: 'R$ 397,00', parc: '12x de R$ 41,52' },
 };
 
 // Durações disponíveis em cada produto. Famevity não tem preço com desconto.
@@ -32,13 +36,20 @@ const PRODUTOS = {
     durs: [['3m', '3 meses'], ['5m', '5 meses'], ['7m', '7 meses'], ['ultra', 'ULTRA']] },
   famevity:  { label: 'Kit Famevity', temDesconto: false,
     durs: [['f2m', '2 meses'], ['f4m', '4 meses'], ['f8m', '8 meses']] },
-  norvy:     { label: 'Kit Norvy', temDesconto: false, descontoMax: 10,
+  norvy:     { label: 'Kit Norvy', marca: 'norvy', temDesconto: false, descontoMax: 10,
     durs: [['ni', 'Protocolo Inicial'], ['nc', 'Protocolo Completo']] },
+  mag:       { label: 'Norvy 5 Magnésios', marca: 'norvy', temDesconto: false, descontoMax: 10,
+    durs: [['m6', '6 meses'], ['m9', '9 meses']] },
 };
 
+// Produtos da Norvy (Kit Norvy e 5 Magnésios): desconto em %, parcelas e termo da Norvy
+function ehNorvy(kit) {
+  return PRODUTOS[produtoDoKit(kit)].marca === 'norvy';
+}
+
 // Multiplicadores das parcelas da Norvy (parcela = valor à vista × fator).
-// Tirados da tabela oficial do Protocolo Completo (R$ 489); servem pra calcular
-// as parcelas quando há desconto.
+// Tirados da tabela oficial do Protocolo Completo (R$ 489) e valem pra todos os
+// produtos Norvy; servem pra calcular as parcelas quando há desconto.
 const FATORES_NORVY = [489.00, 262.84, 178.16, 135.45, 109.83, 92.83, 80.75, 71.09, 64.44, 59.12, 54.77, 51.14]
   .map(v => v / 489);
 
@@ -50,6 +61,8 @@ const TABELAS_PARCELAS = {
   64700: [647.00, 340.53, 230.89, 176.10, 143.26, 121.38, 105.77, 94.08, 85.01, 77.76, 71.84, 66.91],
   34700: [347.00, 186.51, 126.42, 96.12, 77.94, 65.87, 57.30, 50.45, 45.73, 41.95, 38.86, 36.29],
   48900: [489.00, 262.84, 178.16, 135.45, 109.83, 92.83, 80.75, 71.09, 64.44, 59.12, 54.77, 51.14],
+  32700: [327.00, 175.76, 119.14, 90.58, 73.44, 62.07, 54.00, 47.54, 43.09, 39.53, 36.62, 34.20],
+  39700: [397.00, 213.39, 144.64, 109.97, 89.17, 75.36, 65.56, 57.71, 52.32, 48.00, 44.46, 41.52],
 };
 
 function produtoDoKit(kit) {
@@ -221,7 +234,8 @@ function selTipo(el, val) {
 function preencherValoresKit() {
   const k = KITS[kitAtualKey()];
   if (!k) return;
-  const avistaNum = precoComDesconto(kitAtualKey(), k.produto === 'norvy' ? selDescVal : 0);
+  const avistaNum = precoComDesconto(kitAtualKey(), ehNorvy(kitAtualKey()) ? selDescVal : 0);
+  document.getElementById('kit-desc-wrap').style.display = ehNorvy(kitAtualKey()) ? '' : 'none';
   document.getElementById('f-valor-avista').value = fmtMoeda(avistaNum);
   popularParcelamento(document.getElementById('f-parcelamento'), avistaNum, 12, kitAtualKey());
   document.getElementById('kit-info-line').textContent = '📦 ' + (k.frascos ? k.frascos + ' frascos — ' : '') + k.nome + (k.itens ? ' — ' + k.itens : '');
@@ -239,7 +253,7 @@ const TAXA_PARCELA = 0.0349;
 function calcParcelas(pv, kit) {
   const tabela = TABELAS_PARCELAS[Math.round(pv * 100)];
   if (tabela) return tabela.map((valor, i) => ({ n: i + 1, valor }));
-  if (kit && produtoDoKit(kit) === 'norvy') {
+  if (kit && ehNorvy(kit)) {
     return FATORES_NORVY.map((f, i) => ({ n: i + 1, valor: Math.round(pv * f * 100) / 100 }));
   }
   const arr = [];
@@ -381,7 +395,7 @@ function salvar() {
     precoAvista: 'R$ ' + fmtMoeda(valorAvista),
     precoParc:   parcelaEscolhida.n + 'x de R$ ' + fmtMoeda(parcelaEscolhida.valor),
     pagamento: selPagVal,
-    desconto: produtoDoKit(kit) === 'norvy' ? selDescVal : 0,
+    desconto: ehNorvy(kit) ? selDescVal : 0,
     info:    document.getElementById('f-info').value,
     status:  document.getElementById('f-status').value,
     termo:   'pendente',
@@ -522,6 +536,10 @@ ${comCheckbox ? `<td><input type="checkbox" class="row-check" value="${p.id}"></
     <optgroup label="Norvy">
       <option value="ni_normal" ${p.kit==='ni_normal'?'selected':''}>Norvy Inicial</option>
       <option value="nc_normal" ${p.kit==='nc_normal'?'selected':''}>Norvy Completo</option>
+    </optgroup>
+    <optgroup label="Norvy 5 Magnésios">
+      <option value="m6_normal" ${p.kit==='m6_normal'?'selected':''}>Mag 6 meses</option>
+      <option value="m9_normal" ${p.kit==='m9_normal'?'selected':''}>Mag 9 meses</option>
     </optgroup>
   </select>
 </td>
@@ -748,7 +766,7 @@ function updKitRow(id, sel) {
   const p = pedidos.find(x => x.id === id);
   if (p) {
     p.kit = val;
-    if (k.produto !== 'norvy') p.desconto = 0;
+    if (!ehNorvy(val)) p.desconto = 0;
     aplicarPrecoPadrao(p);
     saveData();
     stats();
@@ -792,7 +810,7 @@ function gerarTermo(p) {
   const comp = p.comp ? '\n▸ COMPLEMENTO – ' + p.comp : '';
   const cidade = [p.cidade, p.uf].filter(Boolean).join(' - ');
 
-  if (produtoDoKit(p.kit) === 'norvy') return gerarTermoNorvy(p, k, avista, parc);
+  if (ehNorvy(p.kit)) return gerarTermoNorvy(p, k, avista, parc);
 
   const famevity = produtoDoKit(p.kit) === 'famevity';
   const blocoPedido = famevity
@@ -1047,7 +1065,7 @@ function renderModalBody() {
         <div class="view-section-title">💊 Kit e pagamento</div>
         ${vmRow('Produto', PRODUTOS[produtoDoKit(p.kit)].label)}
         ${vmRow('Kit', descricaoKit(k))}
-        ${prod === 'norvy' ? vmRow('Desconto', (p.desconto || 0) + '%') : ''}
+        ${ehNorvy(p.kit) ? vmRow('Desconto', (p.desconto || 0) + '%') : ''}
         ${vmRow('Valor à vista', p.precoAvista || k.avista)}
         ${vmRow('Parcelado', p.precoParc || k.parc)}
         ${vmRow('Forma de pagamento', fmtPagamento(p.pagamento))}
@@ -1191,7 +1209,7 @@ function opcoesDesconto(max, atual) {
 function aplicarPrecoPadrao(p) {
   const k = KITS[p.kit];
   if (!k) return;
-  if (k.produto === 'norvy') {
+  if (ehNorvy(p.kit)) {
     const pv = precoComDesconto(p.kit, p.desconto || 0);
     p.precoAvista = 'R$ ' + fmtMoeda(pv);
     p.precoParc = '12x de R$ ' + fmtMoeda(calcParcelas(pv, p.kit)[11].valor);
@@ -1239,7 +1257,7 @@ function aplicarKitModal(dur, tipo) {
   const k = KITS[kit];
   if (!k) return;
   p.kit = kit;
-  if (k.produto !== 'norvy') p.desconto = 0;
+  if (!ehNorvy(kit)) p.desconto = 0;
   aplicarPrecoPadrao(p);
   saveData();
   stats();
